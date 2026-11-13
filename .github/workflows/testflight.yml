@@ -8,6 +8,10 @@ on:
         description: "Solo registra l'identificativo e controlla la scheda app (nessuna build)"
         type: boolean
         default: false
+      solo_tester:
+        description: "Solo gruppo di test interno e tester (nessuna build)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,11 +42,13 @@ jobs:
           printf '%s' "$ASC_KEY_P8" | grep -q 'BEGIN PRIVATE KEY' || { echo "ASC_KEY_P8 deve contenere tutto il file .p8"; exit 1; }
           echo "Credenziali presenti (valori non mostrati)."
       - run: node scripts/ios-firma.mjs prepara --bundle "$BUNDLE_ID"
+      - name: Gruppo di test interno
+        run: node scripts/ios-firma.mjs tester-interno --bundle "$BUNDLE_ID"
 
   compila:
     name: Firma e invio a TestFlight (macOS)
     needs: prepara
-    if: ${{ !inputs.solo_prepara }}
+    if: ${{ !inputs.solo_prepara && !inputs.solo_tester }}
     runs-on: macos-26
     timeout-minutes: 45
     steps:

@@ -368,9 +368,37 @@ async function prepara() {
   else { console.log(`  MANCA la scheda app per ${bundle} in App Store Connect (App → + → Nuova app): va creata dal sito, l'API non lo consente.`); process.exitCode = 3 }
 }
 
+/** Gruppo interno «Proprietario» con accesso a tutte le build e, come tester, gli utenti App Store Connect del team. */
+async function testerInterno() {
+  const bundle = arg('bundle')
+  const apps = await api('GET', `/v1/apps?filter[bundleId]=${encodeURIComponent(bundle)}`)
+  const app = apps.data?.[0]
+  if (!app) throw new Error(`Scheda app per ${bundle} non trovata.`)
+  const gruppi = await api('GET', `/v1/apps/${app.id}/betaGroups?limit=50`)
+  let gruppo = gruppi.data.find((g) => g.attributes.isInternalGroup)
+  if (!gruppo) {
+    gruppo = (await api('POST', '/v1/betaGroups', { data: { type: 'betaGroups', attributes: { name: 'Proprietario', isInternalGroup: true, hasAccessToAllBuilds: true },
+      relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data
+    console.log(`  ok  gruppo interno «${gruppo.attributes.name}» creato (accesso a tutte le build)`)
+  } else console.log(`  ok  gruppo interno «${gruppo.attributes.name}» già presente`)
+  const utenti = await api('GET', '/v1/users?limit=50')
+  for (const u of utenti.data) {
+    const { username, firstName, lastName } = u.attributes
+    try {
+      await api('POST', '/v1/betaTesters', { data: { type: 'betaTesters', attributes: { email: username, firstName, lastName },
+        relationships: { betaGroups: { data: [{ type: 'betaGroups', id: gruppo.id }] } } } })
+      console.log(`  ok  ${firstName} ${lastName} aggiunto come tester interno`)
+    } catch (e) {
+      console.log(`  ${firstName} ${lastName}: ${e.message}`)
+    }
+  }
+  const builds = await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=3`)
+  for (const b of builds.data) console.log(`  build ${b.attributes.version}: ${b.attributes.processingState}`)
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const cmd = process.argv[2]
-  const run = { crea, pulisci, attendi, prepara, 'prossima-build': prossimaBuild }[cmd]
+  const run = { crea, pulisci, attendi, prepara, 'tester-interno': testerInterno, 'prossima-build': prossimaBuild }[cmd]
   if (!run) {
     console.error('Comando sconosciuto. Usare: crea | pulisci | attendi | prossima-build (vedi il commento in testa al file).')
     process.exit(2)
