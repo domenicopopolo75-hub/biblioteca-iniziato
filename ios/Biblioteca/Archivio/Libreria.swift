@@ -93,9 +93,12 @@ final class Libreria: ObservableObject {
         importazioneInCorso = sorgente.lastPathComponent
         defer { importazioneInCorso = nil }
         do {
-            let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + "-" + sorgente.lastPathComponent)
+            // Cartella temporanea univoca, nome del file invariato: il titolo deriva dal nome originale.
+            let dirTmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+            try FileManager.default.createDirectory(at: dirTmp, withIntermediateDirectories: true)
+            let tmp = dirTmp.appendingPathComponent(sorgente.lastPathComponent)
             try FileManager.default.copyItem(at: sorgente, to: tmp)
-            defer { try? FileManager.default.removeItem(at: tmp) }
+            defer { try? FileManager.default.removeItem(at: dirTmp) }
             let sha = try Importatore.sha256(tmp)
             if let gia = libri.first(where: { $0.id == sha }) { return gia }
             let pacchetto = try await Task.detached(priority: .userInitiated) {

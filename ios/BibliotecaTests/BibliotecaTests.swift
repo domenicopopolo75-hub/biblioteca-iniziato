@@ -112,6 +112,7 @@ final class LibreriaTests: XCTestCase {
         XCTAssertNotNil(a)
         XCTAssertEqual(a?.id, b?.id)
         XCTAssertEqual(lib.libri.count, 1)
+        XCTAssertEqual(a?.titolo, "pupilla", "il titolo è il nome del file, senza codici temporanei")
         let p = try XCTUnwrap(lib.pacchetto(a!.id))
         XCTAssertEqual(p.blocks.map(\.text), ["La pupilla del mondo", "Primo paragrafo su due righe.", "Secondo paragrafo."])
         XCTAssertTrue(FileManager.default.fileExists(atPath: lib.originale(a!).path))

@@ -17,7 +17,7 @@ final class SchermateUITests: XCTestCase {
         app.launchArguments = ["-demo"]
         app.launch()
 
-        let libro = app.staticTexts["Esempio - Equilibrio e Tempio"]
+        let libro = app.buttons.containing(NSPredicate(format: "label BEGINSWITH 'Esempio - Equilibrio e Tempio'")).firstMatch
         XCTAssertTrue(libro.waitForExistence(timeout: 20))
         scatta("01-biblioteca-guida")
 
@@ -28,7 +28,8 @@ final class SchermateUITests: XCTestCase {
             app.buttons["Da Google Drive"].tap()
             sleep(2)
             scatta("03-google-drive")
-            app.navigationBars.buttons.element(boundBy: 0).tap()
+            app.navigationBars.buttons["Biblioteca"].tap()
+            sleep(1)
         }
 
         libro.tap()
