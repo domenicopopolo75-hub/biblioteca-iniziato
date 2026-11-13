@@ -151,3 +151,46 @@ final class VoceTests: XCTestCase {
         XCTAssertGreaterThan(d2, 0.3)
     }
 }
+
+final class StudioTests: XCTestCase {
+    func testIndiceFTS5TrovaParoleEDeclinazioni() throws {
+        let u = FileManager.default.temporaryDirectory.appendingPathComponent("indice-\(UUID()).sqlite")
+        let i = Indice(percorso: u)
+        XCTAssertTrue(i.disponibile, "FTS5 deve essere disponibile nel SQLite di iOS")
+        let blocchi = ["L'equilibrio degli opposti nel Tempio.", "Of Equilibrium: the balance of opposites.", "La volontà dell'iniziato."].enumerated().map {
+            Blocco(id: "b\($0.offset)", order: $0.offset, kind: "paragraph", locator: Locator(page_index: $0.offset), lang: nil, text_raw: $0.element, text: $0.element)
+        }
+        i.indicizza(libro: "L1", blocchi: blocchi)
+        XCTAssertTrue(i.contiene(libro: "L1"))
+        XCTAssertEqual(Set(i.cerca(["equilibri"]).map(\.ordine)), [0, 1], "il prefisso copre equilibrio/equilibrium")
+        XCTAssertEqual(i.cerca(["volonta"]).first?.ordine, 2, "accenti ignorati")
+        XCTAssertTrue(i.cerca(["tempio"], libri: ["ALTRO"]).isEmpty, "filtro per libro")
+        i.rimuovi(libro: "L1")
+        XCTAssertFalse(i.contiene(libro: "L1"))
+    }
+
+    func testSezioniDaiTitoliEConLimite() {
+        var blocchi: [Blocco] = []
+        func agg(_ kind: String, _ t: String, pagina: Int) {
+            blocchi.append(Blocco(id: "b\(blocchi.count)", order: blocchi.count, kind: kind, locator: Locator(page_index: pagina), lang: "it", text_raw: t, text: t))
+        }
+        let lungo = String(repeating: "testo di prova ", count: 300)   // ~4500 caratteri
+        agg("heading", "Capitolo primo", pagina: 0); agg("paragraph", lungo, pagina: 0); agg("paragraph", lungo, pagina: 1)
+        agg("heading", "Capitolo secondo", pagina: 2); agg("paragraph", lungo, pagina: 2)
+        let p = Pacchetto(generated_at: "", generator: .init(name: "t", version: "1"), work: .init(title: "T"),
+                          edition: .init(id: "x", source_file: "x.pdf", source_sha256: "x", format: "pdf", pages_total: 3),
+                          coverage: .init(units_total: 3, units_with_text: 3, units_empty: [], units_need_ocr: []), blocks: blocchi)
+        let s = Studio.sezioni(di: p)
+        XCTAssertEqual(s.map(\.titolo), ["Capitolo primo", "Capitolo secondo"])
+        XCTAssertEqual(s.map(\.riferimento), ["pp. 1–2", "p. 3"])
+        XCTAssertEqual(s.last?.a, blocchi.count - 1)
+    }
+
+    func testCostiEJSON() {
+        XCTAssertEqual(ModelloClaude.haiku.costo(input: 1_000_000, output: 0), 0.10, accuracy: 1e-9)
+        XCTAssertEqual(ModelloClaude.haiku.costo(input: 200_000, output: 0), 0.10, accuracy: 1e-9, "oltre 100k il prezzo sale a 0,50 $/M")
+        XCTAssertEqual(ModelloClaude.sonnet.costo(input: 10_000, output: 1_000), 0.03, accuracy: 1e-9)
+        XCTAssertEqual(ClienteClaude.json([String].self, da: "Ecco:\n[\"uno\", \"due\"]\nfine"), ["uno", "due"])
+        XCTAssertEqual(Data([0xfb, 0xff]).base64URL, "-_8")
+    }
+}

@@ -324,7 +324,7 @@ final class Lettore: ObservableObject {
             i += 1
         }
         guard !lotto.isEmpty else { return }
-        let motore: MotoreTraduzione = usaAPI ? MotoreClaude() : MotoreApple(traduttore: apple)
+        let motore: MotoreTraduzione = usaAPI && ClienteClaude.chiavePresente ? MotoreClaude() : MotoreApple(traduttore: apple)
         let t0 = Date()
         let tradotti = try await motore.traduci(lotto.map(\.text), da: sorgente)
         metriche.latenzeTraduzione.append(Date().timeIntervalSince(t0))

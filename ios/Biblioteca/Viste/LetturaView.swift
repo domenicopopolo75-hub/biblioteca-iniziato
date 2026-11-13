@@ -8,6 +8,7 @@ struct LetturaView: View {
     @EnvironmentObject var traduttore: TraduttoreApple
     @EnvironmentObject var impostazioni: Impostazioni
     let libro: Libro
+    var daOrdine = 0
 
     @State private var tradotti: [String: String] = [:]
     @State private var originale: Set<String> = []
@@ -20,7 +21,7 @@ struct LetturaView: View {
         let formato = libreria.pacchetto(libro.id)?.edition.format ?? libro.formato
         List {
             if let e = errore { Text(e).foregroundStyle(.orange) }
-            ForEach(blocchi.prefix(limite)) { b in
+            ForEach(finestra(blocchi)) { b in
                 VStack(alignment: .leading, spacing: 6) {
                     let mostraOriginale = originale.contains(b.id) || !daTradurre(b)
                     Text(mostraOriginale ? b.text : (tradotti[b.id] ?? "…"))
@@ -43,13 +44,14 @@ struct LetturaView: View {
                             .buttonStyle(.borderless)
                     }
                 }
-                .task { if b.order >= limite - 5 { limite += 60 } }
+                .background(b.order == daOrdine && daOrdine > 0 ? Color.yellow.opacity(0.15) : Color.clear)
+                .task { if b.order >= inizio + limite - 5 { limite += 60 } }
             }
         }
         .listStyle(.plain)
         .navigationTitle("Lettura")
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: limite) { await traduciVisibili(blocchi.prefix(limite)) }
+        .task(id: limite) { await traduciVisibili(finestra(blocchi)[...]) }
         .sheet(item: Binding(get: { paginaPDF.map(PaginaID.init) }, set: { paginaPDF = $0?.id })) { p in
             NavigationStack {
                 PDFOriginale(url: libreria.originale(libro), pagina: p.id)
@@ -60,6 +62,12 @@ struct LetturaView: View {
     }
 
     struct PaginaID: Identifiable { let id: Int }
+
+    var inizio: Int { max(0, daOrdine - 3) }
+    func finestra(_ b: [Blocco]) -> [Blocco] {
+        guard inizio < b.count else { return [] }
+        return Array(b[inizio..<min(b.count, inizio + limite)])
+    }
 
     func daTradurre(_ b: Blocco) -> Bool {
         let l = String((b.lang ?? libro.lingua ?? "it").prefix(2))
@@ -72,7 +80,7 @@ struct LetturaView: View {
         for b in blocchi where daTradurre(b) && tradotti[b.id] == nil {
             if let v = await arch.voce(b) { tradotti[b.id] = v.testo } else { mancanti.append(b) }
         }
-        let motore: MotoreTraduzione = impostazioni.usaAPI ? MotoreClaude() : MotoreApple(traduttore: traduttore)
+        let motore: MotoreTraduzione = impostazioni.usaAPI && ClienteClaude.chiavePresente ? MotoreClaude() : MotoreApple(traduttore: traduttore)
         let perLingua = Dictionary(grouping: mancanti) { String(($0.lang ?? libro.lingua ?? "en").prefix(2)) }
         for (lingua, gruppo) in perLingua {
             for inizio in stride(from: 0, to: gruppo.count, by: 8) {

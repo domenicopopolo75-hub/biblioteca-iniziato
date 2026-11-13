@@ -49,6 +49,7 @@ final class Libreria: ObservableObject {
     @Published var importazioneInCorso: String?
 
     let radice: URL
+    let indice: Indice
     private var cachePacchetti: [String: Pacchetto] = [:]
 
     init(radice: URL? = nil) {
@@ -56,9 +57,7 @@ final class Libreria: ObservableObject {
             .appendingPathComponent("Biblioteca", isDirectory: true)
         self.radice = base
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-        var esclusa = base
-        var v = URLResourceValues(); v.isExcludedFromBackup = false
-        try? esclusa.setResourceValues(v)
+        indice = Indice(percorso: base.appendingPathComponent("indice.sqlite"))
         caricaIndice()
     }
 
@@ -71,17 +70,17 @@ final class Libreria: ObservableObject {
         try? FileManager.default.createDirectory(at: u, withIntermediateDirectories: true)
         return u
     }
-    private var indice: URL { radice.appendingPathComponent("libreria.json") }
+    private var fileElenco: URL { radice.appendingPathComponent("libreria.json") }
 
     private func caricaIndice() {
-        guard let d = try? Data(contentsOf: indice) else { return }
+        guard let d = try? Data(contentsOf: fileElenco) else { return }
         let dec = JSONDecoder(); dec.dateDecodingStrategy = .iso8601
         libri = (try? dec.decode([Libro].self, from: d)) ?? []
     }
 
     private func salvaIndice() {
         let enc = JSONEncoder(); enc.dateEncodingStrategy = .iso8601; enc.outputFormatting = [.prettyPrinted, .sortedKeys]
-        try? enc.encode(libri).write(to: indice, options: .atomic)
+        try? enc.encode(libri).write(to: fileElenco, options: .atomic)
     }
 
     // MARK: importazione
@@ -122,6 +121,7 @@ final class Libreria: ObservableObject {
             libri.insert(libro, at: 0)
             cachePacchetti[id] = pacchetto
             salvaIndice()
+            indice.indicizza(libro: id, blocchi: pacchetto.blocks)
             return libro
         } catch {
             ultimoErrore = "\(sorgente.lastPathComponent): \(error.localizedDescription)"
@@ -141,7 +141,26 @@ final class Libreria: ObservableObject {
         try? FileManager.default.removeItem(at: dir)
         libri.removeAll { $0.id == libro.id }
         cachePacchetti[libro.id] = nil
+        indice.rimuovi(libro: libro.id)
         salvaIndice()
+    }
+
+    /// Indicizza i libri importati prima che esistesse l'indice di ricerca.
+    func assicuraIndice() {
+        for l in libri where !indice.contiene(libro: l.id) {
+            if let p = pacchetto(l.id) { indice.indicizza(libro: l.id, blocchi: p.blocks) }
+        }
+    }
+
+    /// Importa un file scaricato (es. da Google Drive) indicando la provenienza.
+    @discardableResult
+    func importa(dati url: URL, nome: String) async -> Libro? {
+        let dest = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+        let f = dest.appendingPathComponent(nome)
+        try? FileManager.default.moveItem(at: url, to: f)
+        defer { try? FileManager.default.removeItem(at: dest) }
+        return await importa(f)
     }
 
     // MARK: dati per libro

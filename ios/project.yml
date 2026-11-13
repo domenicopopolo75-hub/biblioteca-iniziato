@@ -33,6 +33,7 @@ targets:
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: false
         ITSAppUsesNonExemptEncryption: false
+        GoogleClientID: $(GOOGLE_CLIENT_ID)
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         CFBundleDocumentTypes:
           - CFBundleTypeName: Libro
@@ -45,6 +46,7 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GOOGLE_CLIENT_ID: ""
   BibliotecaTests:
     type: bundle.unit-test
     platform: iOS
