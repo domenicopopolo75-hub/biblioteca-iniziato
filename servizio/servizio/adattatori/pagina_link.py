@@ -10,37 +10,62 @@ from ..modello import nuovo_candidato
 ESTENSIONI = (".pdf", ".epub")
 
 
+GENERICO = re.compile(
+    r"^(download|scarica|scaricare|presentazione|clicca|qui|pdf|leggi|apri|link|testo|articolo|estratto|"
+    r"(la |il |lo |l')?(prima|seconda|terza|\d+[ao]?) (conferenza|capitolo)|(del|della|dello|di) .*)", re.I)
+RUMORE = re.compile(r"\((pdf|epub)\)|\bdownload\b|\bscarica\b\s*(\([^)]*\))?|\([\d.,]+\s*[kmg]b\)", re.I)
+
+
+def titolo_pulito(testo: str, url: str, contesto: str) -> str:
+    t = " ".join(RUMORE.sub(" ", testo).split()).strip(" -–:()")
+    nome = urllib.parse.unquote(urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1])
+    nome = re.sub(r"\.(pdf|epub)$", "", nome, flags=re.I).replace("_", " ").replace("-", " ").strip()
+    if len(t) < 6 or GENERICO.match(t):
+        base = contesto or nome
+        return f"{base} — {t}" if contesto and len(t) >= 3 else base
+    return t
+
+
 class _Link(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.link: list[tuple[str, str]] = []
+        self.link: list[tuple[str, str, str]] = []
         self._href: str | None = None
         self._testo: list[str] = []
+        self._intest = False
+        self._h: list[str] = []
+        self.contesto = ""
 
     def handle_starttag(self, tag, attrs):
         if tag == "a":
             self._href = dict(attrs).get("href")
             self._testo = []
+        elif tag in ("h1", "h2", "h3", "h4", "h5"):
+            self._intest, self._h = True, []
 
     def handle_data(self, data):
         if self._href is not None:
             self._testo.append(data)
+        if self._intest:
+            self._h.append(data)
 
     def handle_endtag(self, tag):
         if tag == "a" and self._href is not None:
-            self.link.append((self._href, " ".join("".join(self._testo).split())))
+            self.link.append((self._href, " ".join("".join(self._testo).split()), self.contesto))
             self._href = None
+        elif tag in ("h1", "h2", "h3", "h4", "h5") and self._intest:
+            self._intest = False
+            self.contesto = " ".join("".join(self._h).split())
 
 
 def estrai(html: str, base: str) -> list[tuple[str, str]]:
     p = _Link()
     p.feed(html)
     out = []
-    for href, testo in p.link:
+    for href, testo, contesto in p.link:
         url = urllib.parse.urljoin(base, href)
         if urllib.parse.urlsplit(url).path.lower().endswith(ESTENSIONI):
-            nome = urllib.parse.unquote(urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1])
-            out.append((url, testo or re.sub(r"\.(pdf|epub)$", "", nome, flags=re.I).replace("_", " ")))
+            out.append((url, titolo_pulito(testo, url, contesto)))
     return out
 
 

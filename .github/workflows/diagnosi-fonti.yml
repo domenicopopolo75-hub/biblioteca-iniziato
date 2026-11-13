@@ -1,0 +1,15 @@
+name: Diagnosi fonti
+on: workflow_dispatch
+permissions: { contents: read }
+jobs:
+  diagnosi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Internet Archive
+        run: |
+          q='(hermetic) AND mediatype:texts AND access-restricted-item:false'
+          curl -sS -G -m 60 -A "BibliotecaIniziato/0.1" "https://archive.org/advancedsearch.php" \
+            --data-urlencode "q=$q" -d "fl[]=identifier" -d "fl[]=title" -d "rows=3" -d "output=json" | head -c 900; echo
+          curl -sS -m 20 https://archive.org/robots.txt | head -15
+      - name: Gutendex
+        run: curl -sS -m 90 -w "\nHTTP %{http_code} in %{time_total}s\n" "https://gutendex.com/books/?search=hermetic&copyright=false" | tail -c 400

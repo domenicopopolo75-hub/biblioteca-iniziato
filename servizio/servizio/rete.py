@@ -19,7 +19,7 @@ class BloccatoDaRobots(ErroreRete):
 
 
 class Fetcher:
-    def __init__(self, timeout: int = 30, tentativi: int = 3, pausa: float = 1.0, max_byte: int = 300 * 1024 * 1024):
+    def __init__(self, timeout: int = 60, tentativi: int = 3, pausa: float = 1.0, max_byte: int = 300 * 1024 * 1024):
         self.timeout, self.tentativi, self.pausa, self.max_byte = timeout, tentativi, pausa, max_byte
         self._robots: dict[str, urllib.robotparser.RobotFileParser | None] = {}
 

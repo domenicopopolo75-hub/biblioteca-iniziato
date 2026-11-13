@@ -156,6 +156,16 @@ def test_estrazione_link_pdf_epub():
     assert len(r) == 2
 
 
+def test_titoli_generici_ripuliti_con_contesto_o_nome_file():
+    html = ('<h3>Rudolf Steiner: La filosofia della libertà</h3><a href="a/lib.pdf">Download del primo capitolo</a>'
+            '<h3>Mackey</h3><a href="m/Symbolism_of_Freemasonry.pdf">Albert G. Mackey The Symbolism of Freemasonry (pdf)Download</a>'
+            '<a href="x/Il_Libro_di_Prova.pdf">Scarica (301 Kb)</a>')
+    t = [x[1] for x in pagina_link.estrai(html, "https://s.it/")]
+    assert t[0].startswith("Rudolf Steiner: La filosofia della libertà") and "Download" not in t[0]
+    assert t[1] == "Albert G. Mackey The Symbolism of Freemasonry"
+    assert "Scarica" not in t[2] and "Kb" not in t[2]
+
+
 def test_registro_reale_valido_e_copertura_dichiarata():
     reg = fonti.carica_registro()
     assert len(reg["fonti"]) == 17 and len(reg["servizi_personali"]) == 4

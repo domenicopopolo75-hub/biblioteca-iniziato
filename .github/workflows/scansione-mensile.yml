@@ -47,7 +47,7 @@ jobs:
           python -m servizio scansiona --dati ../dati --rapporto ../rapporto.md ${{ inputs.forza && '--forza' || '' }} 2> ../errori.txt
           code=$?
           cat ../errori.txt
-          echo "nuovi=$(grep -o '::NUOVI=[0-9]*' ../errori.txt | cut -d= -f3)" >> "$GITHUB_OUTPUT"
+          echo "nuovi=$(grep -o '::NUOVI=[0-9]*' ../errori.txt | cut -d= -f2)" >> "$GITHUB_OUTPUT"
           exit $code
       - name: Salva lo stato
         run: |
