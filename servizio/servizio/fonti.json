@@ -1,0 +1,28 @@
+{
+  "ricerche": ["hermetic", "freemasonry", "kabbalah", "theosophy", "rosicrucian", "gnosticism", "alchemy", "symbolism initiation"],
+  "fonti": [
+    {"id": "liberliber", "nome": "Liber Liber", "url": "https://liberliber.it/", "capacita": ["catalogo", "download"], "adattatore": null, "stato": "da_implementare"},
+    {"id": "wikisource-it", "nome": "Wikisource italiana", "url": "https://it.wikisource.org/", "capacita": ["catalogo", "testo_completo"], "adattatore": null, "stato": "da_implementare"},
+    {"id": "gutenberg", "nome": "Project Gutenberg (via Gutendex)", "url": "https://gutendex.com/", "capacita": ["catalogo", "download"], "adattatore": "gutendex", "stato": "attivo"},
+    {"id": "archive", "nome": "Internet Archive", "url": "https://archive.org/", "capacita": ["catalogo", "download"], "adattatore": "archive", "stato": "attivo"},
+    {"id": "gallica", "nome": "Gallica / BnF", "url": "https://gallica.bnf.fr/", "capacita": ["catalogo"], "adattatore": null, "stato": "da_implementare", "nota": "pagina di raccolta 403 nel dossier: nessun download certificato"},
+    {"id": "e-rara", "nome": "e-rara", "url": "https://www.e-rara.ch/", "capacita": ["catalogo"], "adattatore": null, "stato": "da_implementare"},
+    {"id": "mdz", "nome": "MDZ / Biblioteca bavarese", "url": "https://www.digitale-sammlungen.de/en/", "capacita": ["catalogo"], "adattatore": null, "stato": "da_implementare"},
+    {"id": "liberaconoscenza", "nome": "Libera Conoscenza", "url": "https://www.liberaconoscenza.it/download/liberaconoscenza-download-libri.html", "capacita": ["catalogo", "download"], "adattatore": "pagina_link", "stato": "attivo", "parametri": {"lingua": "it"}},
+    {"id": "rsarchive", "nome": "Rudolf Steiner Archive", "url": "https://rsarchive.org/", "capacita": ["catalogo", "testo_completo"], "adattatore": null, "stato": "da_implementare"},
+    {"id": "otoitalia", "nome": "O.T.O. Italia", "url": "https://www.otoitalia.it/liber-al.html", "capacita": ["catalogo", "download"], "adattatore": "pagina_link", "stato": "attivo", "parametri": {"lingua": "it"}},
+    {"id": "hermetic", "nome": "Hermetic Library", "url": "https://hermetic.com/crowley/books/index?redirect=1", "capacita": ["catalogo", "testo_completo"], "adattatore": null, "stato": "da_implementare", "nota": "aperture dirette 403 nel dossier: accesso automatico da collaudare"},
+    {"id": "sacred-texts", "nome": "Sacred Texts", "url": "https://sacred-texts.com/", "capacita": ["catalogo", "testo_completo"], "adattatore": null, "stato": "da_implementare"},
+    {"id": "iapsop", "nome": "IAPSOP", "url": "https://iapsop.com/", "capacita": ["catalogo", "download"], "adattatore": null, "stato": "da_implementare", "nota": "limiti di banda: acquisizioni mirate con cache"},
+    {"id": "cintamani", "nome": "Istituto Cintamani", "url": "https://www.istitutocintamani.org/", "capacita": ["catalogo", "download"], "adattatore": null, "stato": "da_implementare"},
+    {"id": "genoalodge", "nome": "Genoa Lodge 433", "url": "https://genoalodge433.com/library", "capacita": ["catalogo", "download"], "adattatore": "pagina_link", "stato": "attivo", "parametri": {"lingua": "en"}},
+    {"id": "fuocosacro", "nome": "Fuoco Sacro", "url": "https://www.fuocosacro.com/pagine/maestri/martinismo2.htm", "capacita": ["catalogo", "download"], "adattatore": "pagina_link", "stato": "attivo", "parametri": {"lingua": "it"}},
+    {"id": "paxpleroma", "nome": "Pax Pleroma", "url": "https://paxpleroma.com/", "capacita": ["catalogo"], "adattatore": null, "stato": "da_implementare"}
+  ],
+  "servizi_personali": [
+    {"id": "spotify", "nome": "Spotify Premium", "capacita": ["collegamento"], "stato": "non_collegato", "nota": "metadati e controllo remoto, non testo integrale"},
+    {"id": "audible", "nome": "Audible", "capacita": ["collegamento"], "stato": "non_collegato", "nota": "nessuna API pubblica per la biblioteca personale"},
+    {"id": "apple-libri", "nome": "Apple Libri", "capacita": ["collegamento"], "stato": "non_collegato", "nota": "nessuna API consumer per la libreria; solo file importati"},
+    {"id": "google-books", "nome": "Google Books / Play Books", "capacita": ["catalogo", "collegamento"], "stato": "non_collegato"}
+  ]
+}

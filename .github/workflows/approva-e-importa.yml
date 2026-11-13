@@ -1,0 +1,55 @@
+name: Approva e importa
+
+# Approvazione verificata lato servizio: solo il proprietario del repository, per candidato E versione.
+# Il download parte solo con approvazione valida; poi verifica, hash, deduplica, caricamento su Drive.
+on:
+  workflow_dispatch:
+    inputs:
+      candidati:
+        description: "Elenco ID:VERSIONE separati da virgola (dal rapporto della scansione)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scansione-mensile
+  cancel-in-progress: false
+
+jobs:
+  approva:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+      DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Stato
+        run: git clone --quiet --branch dati --single-branch --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" dati
+      - name: Approva
+        run: |
+          cd servizio
+          args=(); IFS=',' read -ra voci <<< "${{ inputs.candidati }}"
+          for v in "${voci[@]}"; do args+=(--id "$(echo "$v" | xargs)"); done
+          python -m servizio approva --dati ../dati --da "${{ github.actor }}" "${args[@]}"
+      - name: Importa su Drive
+        run: |
+          if [ -z "$GOOGLE_REFRESH_TOKEN" ]; then
+            echo "::warning::Accesso Drive del servizio non configurato: approvazione registrata, download NON eseguito."
+            exit 0
+          fi
+          cd servizio && python -m servizio esegui --dati ../dati
+      - name: Salva lo stato
+        if: always()
+        run: |
+          cd dati
+          git config user.name "biblioteca-servizio"; git config user.email "noreply@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || { git commit -q -m "Approvazioni e importazioni $(date -u +%F)"; git push -q origin HEAD:dati; }

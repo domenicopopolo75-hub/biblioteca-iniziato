@@ -21,6 +21,16 @@ jobs:
       - run: pip install "pymupdf>=1.24" pytest
       - run: cd pipeline && python -m pytest -q
 
+  servizio:
+    name: Servizio fonti (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pytest
+      - run: cd servizio && python -m pytest -q
+
   ios:
     name: App iPhone (build + test su simulatore)
     runs-on: macos-15

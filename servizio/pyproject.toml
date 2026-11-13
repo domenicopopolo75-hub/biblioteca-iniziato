@@ -1,0 +1,13 @@
+[project]
+name = "biblioteca-servizio"
+version = "0.1.0"
+description = "Servizio privato: scansione mensile delle fonti, proposte, approvazione, import su Drive"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

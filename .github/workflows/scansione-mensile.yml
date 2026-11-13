@@ -1,0 +1,66 @@
+name: Scansione mensile
+
+# Esecutore: GitHub Actions. Il cron gira ogni giorno ma la scansione parte solo se è dovuta
+# (primo del mese, ore 07:00 Europe/Rome, nessuna scansione riuscita dopo quella scadenza):
+# un cron saltato o in ritardo viene recuperato il giorno dopo. Stato in un ramo separato «dati».
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      forza:
+        description: "Scansiona anche se non è dovuta"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: scansione-mensile
+  cancel-in-progress: false
+
+jobs:
+  scansione:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Stato (ramo «dati»)
+        run: |
+          url="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$url" dati >/dev/null 2>&1; then
+            git clone --quiet --branch dati --single-branch --depth 1 "$url" dati
+          else
+            mkdir dati && git -C dati init -q -b dati && git -C dati remote add origin "$url"
+          fi
+      - name: Scansione
+        id: scan
+        run: |
+          cd servizio
+          set +e
+          python -m servizio scansiona --dati ../dati --rapporto ../rapporto.md ${{ inputs.forza && '--forza' || '' }} 2> ../errori.txt
+          code=$?
+          cat ../errori.txt
+          echo "nuovi=$(grep -o '::NUOVI=[0-9]*' ../errori.txt | cut -d= -f3)" >> "$GITHUB_OUTPUT"
+          exit $code
+      - name: Salva lo stato
+        run: |
+          cd dati
+          git config user.name "biblioteca-servizio"
+          git config user.email "noreply@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || { git commit -q -m "Scansione $(date -u +%F)"; git push -q origin HEAD:dati; }
+      - name: Rapporto e notifica
+        if: steps.scan.outputs.nuovi != '' && hashFiles('rapporto.md') != ''
+        run: |
+          cat rapporto.md >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.scan.outputs.nuovi }}" != "0" ]; then
+            gh issue create --title "Nuovi testi da approvare — $(date -u +%Y-%m)" \
+              --body-file rapporto.md
+          fi

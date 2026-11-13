@@ -15,3 +15,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .DS_Store
+__pycache__/
+.pytest_cache/
+*.lock
