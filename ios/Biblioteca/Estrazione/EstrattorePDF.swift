@@ -31,7 +31,7 @@ struct EstrattorePDF {
         var blocchi: [BloccoGrezzo] = []
         for r in ordinate {
             let h = max(r.rect.height, 1)
-            var migliore: (Int, Double)?
+            var migliore: (Int, CGFloat)?
             for (i, b) in blocchi.enumerated() {
                 let sovrapposizione = min(b.rect.maxX, r.rect.maxX) - max(b.rect.minX, r.rect.minX)
                 let minimo = 0.3 * min(b.rect.width, r.rect.width)
@@ -180,7 +180,7 @@ struct EstrattorePDF {
                 else if corpo > 0, b.altezzaRiga <= corpo * 0.85 { tipo = "note" }
                 out.append(Blocco(id: String(format: "p%04d-b%04d", i, k), order: ordine, kind: tipo,
                                   locator: Locator(page_index: i, printed_page: stampata, column: b.colonna,
-                                                   bbox: [b.rect.minX, b.rect.minY, b.rect.maxX, b.rect.maxY].map { ($0 * 10).rounded() / 10 },
+                                                   bbox: [b.rect.minX, b.rect.minY, b.rect.maxX, b.rect.maxY].map { (Double($0) * 10).rounded() / 10 },
                                                    chapter: nil, href: nil),
                                   lang: script ?? lingua, text_raw: b.testo, text: testo))
                 ordine += 1
