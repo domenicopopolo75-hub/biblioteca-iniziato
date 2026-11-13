@@ -1,0 +1,64 @@
+name: Biblioteca
+options:
+  bundleIdPrefix: it.biblioteca
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+packages:
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation
+    from: "0.9.19"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Biblioteca:
+    type: application
+    platform: iOS
+    sources: [Biblioteca]
+    dependencies:
+      - package: ZIPFoundation
+    info:
+      path: Biblioteca/Info.plist
+      properties:
+        CFBundleDisplayName: Biblioteca
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIBackgroundModes: [audio]
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: false
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Libro
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [com.adobe.pdf, org.idpf.epub-container, public.plain-text, public.json]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: it.biblioteca.iniziato
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        CODE_SIGN_STYLE: Automatic
+  BibliotecaTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [BibliotecaTests]
+    dependencies:
+      - target: Biblioteca
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: it.biblioteca.iniziato.tests
+schemes:
+  Biblioteca:
+    build:
+      targets:
+        Biblioteca: all
+        BibliotecaTests: [test]
+    test:
+      targets: [BibliotecaTests]

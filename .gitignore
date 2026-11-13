@@ -1,0 +1,17 @@
+# Nessun libro, PDF, EPUB o dato personale nel repository (repo pubblico)
+*.pdf
+*.epub
+*.bibl.json
+fonti/
+libri/
+
+# Generati
+ios/*.xcodeproj
+ios/Biblioteca/Info.plist
+*.xcresult
+DerivedData/
+build/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store

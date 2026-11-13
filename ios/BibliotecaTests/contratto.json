@@ -1,0 +1,77 @@
+{
+ "format": "biblioteca-pacchetto/1",
+ "generated_at": "2026-11-13T06:43:44Z",
+ "generator": {
+  "name": "pipeline",
+  "version": "0.1.0"
+ },
+ "work": {
+  "title": "contratto",
+  "author": null,
+  "language": "en"
+ },
+ "edition": {
+  "id": "sha256:fef77c2241f474042510bf77e410b4e06ced82d6f5678cc3380b31d95985c8c3",
+  "source_file": "contratto.txt",
+  "source_sha256": "fef77c2241f474042510bf77e410b4e06ced82d6f5678cc3380b31d95985c8c3",
+  "format": "txt",
+  "provenance": "fixture di test",
+  "pages_total": 1
+ },
+ "coverage": {
+  "units_total": 1,
+  "units_with_text": 1,
+  "units_empty": [],
+  "units_need_ocr": []
+ },
+ "blocks": [
+  {
+   "id": "t0000-b0000",
+   "order": 0,
+   "kind": "heading",
+   "locator": {
+    "page_index": 0,
+    "printed_page": null,
+    "column": 0,
+    "bbox": null,
+    "chapter": null,
+    "href": null
+   },
+   "lang": "en",
+   "text_raw": "Liber de equilibrio",
+   "text": "Liber de equilibrio"
+  },
+  {
+   "id": "t0000-b0001",
+   "order": 1,
+   "kind": "paragraph",
+   "locator": {
+    "page_index": 0,
+    "printed_page": null,
+    "column": 0,
+    "bbox": null,
+    "chapter": null,
+    "href": null
+   },
+   "lang": "en",
+   "text_raw": "The first paragraph of a test text.",
+   "text": "The first paragraph of a test text."
+  },
+  {
+   "id": "t0000-b0002",
+   "order": 2,
+   "kind": "paragraph",
+   "locator": {
+    "page_index": 0,
+    "printed_page": null,
+    "column": 0,
+    "bbox": null,
+    "chapter": null,
+    "href": null
+   },
+   "lang": "en",
+   "text_raw": "The second paragraph.\n",
+   "text": "The second paragraph."
+  }
+ ]
+}

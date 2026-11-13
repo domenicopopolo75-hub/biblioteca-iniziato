@@ -1,0 +1,63 @@
+name: CI
+
+# Repository pubblico: runner standard gratuiti e illimitati (anche macOS).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pipeline:
+    name: Motore testi (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install "pymupdf>=1.24" pytest
+      - run: cd pipeline && python -m pytest -q
+
+  ios:
+    name: App iPhone (build + test su simulatore)
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: Genera progetto (XcodeGen)
+        run: brew install xcodegen && cd ios && xcodegen generate
+      - name: Simulatore
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for k,v in sorted(d.items(), reverse=True) if 'iOS' in k for x in v if x['name'].startswith('iPhone')))")
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl list devices | grep "$UDID"
+      - name: Build e test
+        run: |
+          cd ios
+          set -o pipefail
+          xcodebuild test -project Biblioteca.xcodeproj -scheme Biblioteca \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath ../TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee ../xcodebuild.log | grep -E "error:|warning: .*Biblioteca/|Test Case|Executed|\*\* (TEST|BUILD)" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" ../xcodebuild.log
+      - name: Riepilogo test
+        if: always()
+        run: |
+          grep -E "Test Case .*(passed|failed|skipped)|Executed [0-9]+ test" xcodebuild.log | tail -40 >> "$GITHUB_STEP_SUMMARY" || true
+          grep -E "error:" xcodebuild.log | head -40 >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: risultati-ios
+          path: |
+            TestResults.xcresult
+            xcodebuild.log
+          retention-days: 14
