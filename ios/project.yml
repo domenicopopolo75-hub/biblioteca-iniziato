@@ -35,6 +35,9 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         GoogleClientID: $(GOOGLE_CLIENT_ID)
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        CFBundleURLTypes:
+          - CFBundleURLName: google-oauth
+            CFBundleURLSchemes: [com.googleusercontent.apps.465001932991-glldvb1ajktnqtubb2r9ot6fjkkeh4ba]
         CFBundleDocumentTypes:
           - CFBundleTypeName: Libro
             LSHandlerRank: Alternate
@@ -46,7 +49,7 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        GOOGLE_CLIENT_ID: ""
+        GOOGLE_CLIENT_ID: "465001932991-glldvb1ajktnqtubb2r9ot6fjkkeh4ba.apps.googleusercontent.com"
   BibliotecaTests:
     type: bundle.unit-test
     platform: iOS
