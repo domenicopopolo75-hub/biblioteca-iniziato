@@ -12,7 +12,7 @@ BASE = "https://archive.org/advancedsearch.php"
 def cerca(fonte: dict, ricerche: list[str], fetcher, adesso: str, ultimo_controllo: str | None) -> list[dict]:
     out: dict[str, dict] = {}
     for q in ricerche:
-        query = f'({q}) AND mediatype:texts AND access-restricted-item:false'
+        query = f'({q}) AND mediatype:texts AND -access-restricted-item:true'
         if ultimo_controllo:
             query += f" AND addeddate:[{ultimo_controllo[:10]} TO 9999-12-31]"
         url = BASE + "?" + urllib.parse.urlencode(

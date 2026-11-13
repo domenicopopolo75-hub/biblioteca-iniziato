@@ -166,6 +166,23 @@ def test_titoli_generici_ripuliti_con_contesto_o_nome_file():
     assert "Scarica" not in t[2] and "Kb" not in t[2]
 
 
+def test_catalogo_gutenberg_filtra_per_argomento_lingua_e_data():
+    from servizio.adattatori import gutenberg_csv
+    csv_ = ("Text#,Type,Issued,Title,Language,Authors,Subjects,LoCC,Bookshelves\n"
+            "1,Text,2020-01-01,The Kybalion,en,Three Initiates,Hermetic philosophy,BF,Occult\n"
+            "2,Text,2020-01-01,Cucina,en,Rossi,Cooking,TX,\n"
+            "3,Sound,2020-01-01,Hermetic audio,en,X,Hermetic,BF,\n"
+            "4,Text,2026-11-20,Nuovo Massone,it,Y,Freemasonry -- History,HS,Freemasonry\n"
+            "5,Text,2020-01-01,Hermetica,zh,Z,Hermetic,BF,\n")
+    f = FetcherFinto({"https://g/pg.csv": csv_.encode()})
+    fonte = {"id": "g", "url": "https://g/pg.csv", "parole_chiave": ["hermetic", "freemason"]}
+    tutti = gutenberg_csv.cerca(fonte, [], f, ORA, None)
+    assert [c["titolo"] for c in tutti] == ["The Kybalion", "Nuovo Massone"]
+    assert tutti[0]["url_download"] == "https://www.gutenberg.org/cache/epub/1/pg1.epub"
+    nuovi = gutenberg_csv.cerca(fonte, [], f, ORA, "2026-11-01T00:00:00")
+    assert [c["titolo"] for c in nuovi] == ["Nuovo Massone"]  # incrementale per data
+
+
 def test_registro_reale_valido_e_copertura_dichiarata():
     reg = fonti.carica_registro()
     assert len(reg["fonti"]) == 17 and len(reg["servizi_personali"]) == 4

@@ -26,6 +26,7 @@ def esegui_scansione(archivio: Archivio, registro: dict, fetcher, adesso: dateti
     for f in attive:
         esito = {"stato": "ok", "trovati": 0, "nuovi": 0}
         try:
+            f = {**f, "parole_chiave": registro.get("parole_chiave", [])}
             trovati = adattatori[f["adattatore"]](f, registro.get("ricerche", []), fetcher, ora,
                                                   checkpoint.get(f["id"]))
             esito["trovati"] = len(trovati)
