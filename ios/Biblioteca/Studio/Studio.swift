@@ -69,10 +69,10 @@ final class Studio: ObservableObject {
 
     // MARK: sezioni
 
-    static let massimoCaratteriSezione = 40_000
-    static let minimoCaratteriSezione = 3_000
+    nonisolated static let massimoCaratteriSezione = 40_000
+    nonisolated static let minimoCaratteriSezione = 3_000
 
-    static func sezioni(di p: Pacchetto) -> [Sezione] {
+    nonisolated static func sezioni(di p: Pacchetto) -> [Sezione] {
         var out: [Sezione] = []
         var inizio = 0, caratteri = 0
         var titolo: String?
