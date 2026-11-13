@@ -187,7 +187,7 @@ final class StudioTests: XCTestCase {
     }
 
     func testCostiEJSON() {
-        XCTAssertEqual(ModelloClaude.haiku.costo(input: 1_000_000, output: 0), 0.10, accuracy: 1e-9)
+        XCTAssertEqual(ModelloClaude.haiku.costo(input: 50_000, output: 0), 0.005, accuracy: 1e-9, "fino a 100k: 0,10 $/M")
         XCTAssertEqual(ModelloClaude.haiku.costo(input: 200_000, output: 0), 0.10, accuracy: 1e-9, "oltre 100k il prezzo sale a 0,50 $/M")
         XCTAssertEqual(ModelloClaude.sonnet.costo(input: 10_000, output: 1_000), 0.03, accuracy: 1e-9)
         XCTAssertEqual(ClienteClaude.json([String].self, da: "Ecco:\n[\"uno\", \"due\"]\nfine"), ["uno", "due"])
