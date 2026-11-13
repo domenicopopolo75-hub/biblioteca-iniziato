@@ -1,0 +1,36 @@
+name: Schermate
+
+# Avvio a mano: apre l'app sul simulatore con testi dimostrativi e salva le schermate come artefatto.
+on:
+  workflow_dispatch:
+
+jobs:
+  schermate:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+      - run: brew install xcodegen && cd ios && xcodegen generate
+      - name: Simulatore iPhone
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for k,v in sorted(d.items(), reverse=True) if 'iOS' in k for x in v if x['name'].startswith('iPhone 16 Pro') or x['name'].startswith('iPhone 1')))")
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl ui "$UDID" appearance light || true
+      - name: Percorso con schermate
+        run: |
+          cd ios
+          xcodebuild test -project Biblioteca.xcodeproj -scheme Schermate -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath ../Schermate.xcresult CODE_SIGNING_ALLOWED=NO 2>&1 | tail -30 || true
+      - name: Estrai immagini
+        run: |
+          mkdir -p schermate
+          xcrun xcresulttool export attachments --path Schermate.xcresult --output-path schermate
+          ls -la schermate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: schermate
+          path: schermate
+          retention-days: 14

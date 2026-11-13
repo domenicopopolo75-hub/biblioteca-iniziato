@@ -57,6 +57,17 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: it.biblioteca.iniziato.tests
+  BibliotecaUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [BibliotecaUITests]
+    dependencies:
+      - target: Biblioteca
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: it.biblioteca.iniziato.uitests
+        TEST_TARGET_NAME: Biblioteca
 schemes:
   Biblioteca:
     build:
@@ -65,3 +76,10 @@ schemes:
         BibliotecaTests: [test]
     test:
       targets: [BibliotecaTests]
+  Schermate:
+    build:
+      targets:
+        Biblioteca: all
+        BibliotecaUITests: [test]
+    test:
+      targets: [BibliotecaUITests]

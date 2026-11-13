@@ -9,8 +9,14 @@ struct BibliotecaApp: App {
     @StateObject private var studio: Studio
     @StateObject private var drive = GoogleDrive()
 
+    /// Avvio dimostrativo (solo per le schermate): archivio separato con due testi di esempio inventati.
+    static let demo = ProcessInfo.processInfo.arguments.contains("-demo")
+
     init() {
-        let l = Libreria()
+        let l = Self.demo
+            ? Libreria(radice: FileManager.default.temporaryDirectory.appendingPathComponent("demo-\(UUID().uuidString)"))
+            : Libreria()
+        if Self.demo { UserDefaults.standard.set(false, forKey: "guidaChiusa") }
         let t = TraduttoreApple()
         _libreria = StateObject(wrappedValue: l)
         _traduttore = StateObject(wrappedValue: t)
@@ -74,7 +80,17 @@ struct Radice: View {
                 .tabItem { Label("Impostazioni", systemImage: "gearshape") }.tag(3)
         }
         .onChange(of: lettore.libro?.id) { if lettore.libro != nil, lettore.stato == .preparazione { scheda = 2 } }
-        .onAppear { impostazioni.applica(a: lettore); Task.detached { await MainActor.run { libreria.assicuraIndice() } } }
+        .onAppear {
+            impostazioni.applica(a: lettore)
+            libreria.assicuraIndice()
+            if BibliotecaApp.demo, libreria.libri.isEmpty {
+                Task {
+                    for u in (Bundle.main.urls(forResourcesWithExtension: "txt", subdirectory: nil) ?? []).sorted(by: { $0.lastPathComponent > $1.lastPathComponent }) {
+                        await libreria.importa(u)
+                    }
+                }
+            }
+        }
     }
 }
 
