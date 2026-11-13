@@ -36,7 +36,7 @@ Aggiornato: 13/11/2026 ore 13:45 · Esecutore: Claude (Code) · Mandato: dossier
 | Esamina tutto il libro: ogni parte letta, copertura dichiarata | Scritto | idem |
 | Quaderno delle risposte, condivisione | Scritto | — |
 | Budget: costo stimato prima delle operazioni lunghe, contatore per funzione, blocco al tetto | Fatto | Calcolo costi testato in CI |
-| Google Drive nell'app: accesso, cartelle, ricerca, import file e cartelle intere | Scritto | **Manca il client OAuth Google** (da creare in Google Cloud Console): finché manca l'app lo dice |
+| Google Drive nell'app: accesso, cartelle, ricerca, import file e cartelle intere | Scritto; client OAuth iOS creato (13/11 sera) | Progetto Google Cloud «Biblioteca Iniziato», Drive API attiva, schermata di consenso in modalità **Test** con utente di prova domenicopopolo75@gmail.com. ID client in `ios/project.yml` (non è un segreto). **Non ancora provato su iPhone**; in modalità Test Google fa scadere il rinnovo dell'accesso dopo 7 giorni: se succede, riaccedere (oppure pubblicare l'app «in produzione» come uso personale) |
 | Interfaccia: guida iniziale, schede Biblioteca/Studio/Ascolta/Impostazioni | Fatto | Build 2 inviata a TestFlight |
 
 ## Limiti noti (reali)
