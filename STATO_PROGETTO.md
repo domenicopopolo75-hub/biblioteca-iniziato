@@ -1,6 +1,6 @@
 # STATO_PROGETTO — Biblioteca dell'Iniziato
 
-Aggiornato: 13/11/2026 · Esecutore: Claude (Code) · Mandato: dossier Ecce Quam Bonum §13.2
+Aggiornato: 13/11/2026 ore 13:45 · Esecutore: Claude (Code) · Mandato: dossier Ecce Quam Bonum §13.2
 
 ## Decisioni del proprietario (13/11/2026)
 
@@ -8,19 +8,22 @@ Aggiornato: 13/11/2026 · Esecutore: Claude (Code) · Mandato: dossier Ecce Quam
 - **D2** Traduzione: **Apple sul telefono** (gratis) come predefinita; **API Claude** solo su scelta esplicita e **solo con budget mensile configurato** (budget 0 = disattivata).
 - **D3** Voce: **voce Apple italiana locale** (si consiglia di scaricare una voce Avanzata/Premium).
 - **D4** Ricerca mensile dei nuovi testi (lotto 2): **GitHub Actions cron**.
+- **D5** TestFlight con **chiave App Store Connect dedicata** «GitHub Biblioteca» (ID L7R3WR7D57, Amministrazione); segreto unico `ASC_KEY_P8` nel repo. Identificativo `it.biblioteca.iniziato`, scheda app «Biblioteca dell'Iniziato» (id 6834386818). Firma **gestita da Apple** (cloud signing): il team ha già il massimo di certificati di distribuzione e non si toccano quelli di Cantina/Ripulire mail.
 
 ## Lotto 1 — primo percorso completo (in corso)
 
 | Parte | Stato | Prova |
 |---|---|---|
 | Motore testi Python (`pipeline/`): PDF a colonne, EPUB, TXT → pacchetto | Fatto | 9 test verdi su fixture generate; EQB 24 (45 pagine, 302 blocchi, pp. 5 e 40 segnalate da OCR) e EQB 48 (51 pagine, 240 blocchi): ordine colonne **confrontato a vista** con l'originale su pag. 11 (n. 24) e 21 (n. 48) |
-| App: importazione TXT/EPUB/PDF/pacchetto, deduplica per impronta, originale immutabile | Scritto | Test unitari in CI (vedi sotto) |
+| Compilazione iOS e test su simulatore (CI gratuita) | Fatto | 9/9 test superati: normalizzazione, colonne PDF, EPUB, contratto con la pipeline, importazione e deduplica, posizione dopo riavvio, traduzioni invalidate se cambia il testo, **sintesi vocale italiana su file** |
+| TestFlight | Fatto | Build 1 caricata e **VALID** da Apple; gruppo interno «Proprietario» con Domenico |
+| App: importazione TXT/EPUB/PDF/pacchetto, deduplica per impronta, originale immutabile | Scritto e testato in CI | |
 | App: estrazione PDF sul telefono con colonne + OCR Vision per pagine senza testo | Scritto | Test colonne in CI; OCR non ancora provato su scansione reale |
 | App: lettura in italiano, originale con un tocco, pagina PDF originale | Scritto | Non ancora provato su iPhone |
 | App: traduzione Apple (coda su `translationTask`) e API Claude con budget | Scritto | **Non provabile in CI** (modelli lingua da scaricare sul telefono) |
 | App: audio italiano a segmenti persistenti (AAC), avvio a 12 s, riserva fino a 60 s, background, Now Playing, comandi cuffie, interruzioni, ripresa, timer, segnalibri, «Prepara un'ora» | Scritto | Sintesi su file testata in CI se il simulatore ha una voce italiana |
 | Misure prova d'ascolto (primo audio, p50/p95/p99, produzione÷consumo, riserva minima, interruzioni) esportabili in JSON | Scritto | — |
-| **Prova fisica 60 minuti su iPhone** (schermo bloccato, cambio app, cuffie, telefonata, rete assente) | **Non eseguita** | Serve installazione su iPhone (TestFlight): prossimo passo |
+| **Prova fisica 60 minuti su iPhone** (schermo bloccato, cambio app, cuffie, telefonata, rete assente) | **Non eseguita** | App installabile da TestFlight: tocca a Domenico; esportare le misure (scheda Ascolta) e caricarle su Drive |
 
 ## Limiti noti (reali)
 
@@ -34,4 +37,5 @@ Aggiornato: 13/11/2026 · Esecutore: Claude (Code) · Mandato: dossier Ecce Quam
 
 1. `cd pipeline && python -m pytest -q`
 2. CI GitHub (`.github/workflows/ci.yml`): build + test iOS su simulatore, gratuiti perché il repo è pubblico.
-3. Prossimo: distribuzione TestFlight (chiave App Store Connect nei segreti di questo repo) → prova fisica 60 min → correzioni → lotto 2.
+3. Nuova build: Actions → TestFlight → Run workflow (numero build automatico). `solo_tester` aggiorna gruppo/tester.
+4. Prossimo: prova fisica 60 min → correzioni dai dati misurati → lotto 2 (fonti e scansione mensile con approvazione).
