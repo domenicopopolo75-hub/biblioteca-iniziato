@@ -114,8 +114,8 @@ def registro():
 
 def adattatori():
     def ok(f, r, fe, ora, ult):
-        return [nuovo_candidato("ok", "1", ora, titolo="Libro Uno", autore="Rossi, Mario", url_download="https://x/1.pdf", formato="pdf"),
-                nuovo_candidato("ok", "2", ora, titolo="Già Posseduto", autore="Bianchi, Anna", url_download="https://x/2.pdf", formato="pdf")]
+        return [nuovo_candidato("ok", "1", ora, titolo="Hermetic Libro Uno", autore="Rossi, Mario", url_download="https://x/1.pdf", formato="pdf"),
+                nuovo_candidato("ok", "2", ora, titolo="Hermetic Già Posseduto", autore="Bianchi, Anna", url_download="https://x/2.pdf", formato="pdf")]
 
     def rotta(*a):
         raise RuntimeError("503 Service Unavailable")
@@ -123,7 +123,7 @@ def adattatori():
 
 
 def test_scansione_isola_la_fonte_guasta_e_non_si_dichiara_completa(arc):
-    arc.scrivi("inventario", [{"titolo": "Già posseduto", "autore": "Bianchi, Anna"}])
+    arc.scrivi("inventario", [{"titolo": "Hermetic Già posseduto", "autore": "Bianchi, Anna"}])
     run = scansione.esegui_scansione(arc, registro(), None, datetime(2026, 12, 1, tzinfo=timezone.utc), adattatori())
     assert run["fonti"]["ok"]["stato"] == "ok" and run["fonti"]["rotta"]["stato"] == "fallita"
     assert len(run["nuovi"]) == 1 and run["gia_in_biblioteca"] == 1
@@ -181,6 +181,35 @@ def test_catalogo_gutenberg_filtra_per_argomento_lingua_e_data():
     assert tutti[0]["url_download"] == "https://www.gutenberg.org/cache/epub/1/pg1.epub"
     nuovi = gutenberg_csv.cerca(fonte, [], f, ORA, "2026-11-01T00:00:00")
     assert [c["titolo"] for c in nuovi] == ["Nuovo Massone"]  # incrementale per data
+
+
+def test_rilevanza_scarta_rumore_e_privilegia_autori_del_dossier():
+    from servizio import rilevanza
+    assert rilevanza.punteggio({"titolo": "Dorothy's Mystical Adventures in Oz", "autore": "Evans, Robert", "argomenti": "mystic"}) < rilevanza.SOGLIA
+    assert rilevanza.punteggio({"titolo": "Initiation into Literature", "autore": "Faguet", "argomenti": ""}) < rilevanza.SOGLIA
+    assert rilevanza.punteggio({"titolo": "Zanoni", "autore": "Lytton", "argomenti": "Rosicrucians -- Fiction"}) >= rilevanza.SOGLIA
+    assert rilevanza.punteggio({"titolo": "Book Four", "autore": "Crowley, Aleister", "argomenti": ""}) >= rilevanza.SOGLIA
+
+
+def test_scansione_inventario_iniziale_e_contenimento_del_titolo(arc):
+    def ad(f, r, fe, ora, ult):
+        return [nuovo_candidato("pagina", "1", ora, titolo="Albert G. Mackey The Symbolism of Freemasonry", url_download="https://x/1.pdf", formato="pdf"),
+                nuovo_candidato("pagina", "2", ora, titolo="Qualcosa di nuovo sulla Massoneria", url_download="https://x/2.pdf", formato="pdf")]
+    reg = {"ricerche": [], "fonti": [{"id": "pagina", "nome": "P", "capacita": ["catalogo"], "adattatore": "pagina_link", "stato": "attivo"}]}
+    run = scansione.esegui_scansione(arc, reg, None, datetime(2026, 12, 1, tzinfo=timezone.utc), {"pagina_link": ad})
+    assert run["gia_in_biblioteca"] == 1 and len(run["nuovi"]) == 1
+
+
+def test_rapporto_mostra_solo_i_piu_pertinenti_con_versione(arc):
+    def ad(f, r, fe, ora, ult):
+        return [nuovo_candidato("p", str(i), ora, titolo=f"Hermetic Studies {i}", url_download=f"https://x/{i}.pdf", formato="pdf",
+                                autore="Crowley, A." if i % 2 else "Anon") for i in range(60)]
+    reg = {"ricerche": [], "fonti": [{"id": "p", "nome": "P", "capacita": ["catalogo"], "adattatore": "x", "stato": "attivo"}]}
+    run = scansione.esegui_scansione(arc, reg, None, datetime(2026, 12, 1, tzinfo=timezone.utc), {"x": ad})
+    testo = scansione.rapporto(run, arc.leggi("candidati"))
+    assert f"i {scansione.MOSTRA} più pertinenti su 60" in testo and "non mostrati" in testo
+    cid = max(run["nuovi"], key=lambda i: arc.leggi("candidati")[i]["punteggio"])
+    assert f"`{cid}:{arc.leggi('candidati')[cid]['versione']}`" in testo
 
 
 def test_registro_reale_valido_e_copertura_dichiarata():

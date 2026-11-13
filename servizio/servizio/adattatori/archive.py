@@ -27,7 +27,7 @@ def cerca(fonte: dict, ricerche: list[str], fetcher, adesso: str, ultimo_control
                 titolo=d.get("title", ""), autore="; ".join(creator) if isinstance(creator, list) else creator,
                 anno=str(d.get("year", "")), lingua=str(d.get("language", "")), formato="",
                 url_scheda=f"https://archive.org/details/{ident}", url_download="",
-                integrale=None, verifica="catalogo",
+                integrale=None, verifica="catalogo", argomenti=q,
                 motivo=f"Corrisponde alla ricerca «{q}»; file scaricabile da verificare",
             )
             out.setdefault(c["id"], c)

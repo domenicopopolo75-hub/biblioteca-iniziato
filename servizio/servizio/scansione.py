@@ -5,12 +5,22 @@ from datetime import datetime
 
 from . import fonti as reg_fonti
 from .adattatori import ADATTATORI
+from . import rilevanza
 from .archivio import Archivio
-from .modello import (APPROVATO, IMPORTATO, PROPOSTO, RINVIATO, chiave_opera, versione_candidato)
+from .modello import chiave_opera, normalizza
+
+
+def inventario_iniziale() -> list[dict]:
+    import json
+    from importlib import resources
+    return json.loads(resources.files("servizio").joinpath("inventario_iniziale.json").read_text(encoding="utf-8"))
 
 
 def _ora(d: datetime) -> str:
     return d.astimezone().isoformat(timespec="seconds")
+
+
+MOSTRA = 40
 
 
 def esegui_scansione(archivio: Archivio, registro: dict, fetcher, adesso: datetime,
@@ -18,9 +28,12 @@ def esegui_scansione(archivio: Archivio, registro: dict, fetcher, adesso: dateti
     adattatori = adattatori or ADATTATORI
     ora = _ora(adesso)
     candidati = archivio.leggi("candidati")
-    inventario = {chiave_opera(x.get("titolo", ""), x.get("autore", "")) for x in archivio.leggi("inventario")}
+    voci_inv = archivio.leggi("inventario") + inventario_iniziale()
+    inventario = {chiave_opera(x.get("titolo", ""), x.get("autore", "")) for x in voci_inv}
+    titoli_inv = {normalizza(x["titolo"]) for x in voci_inv if len(normalizza(x.get("titolo", ""))) >= 12}
     checkpoint = archivio.leggi("checkpoint")
-    run = {"id": ora, "iniziata": ora, "fonti": {}, "nuovi": [], "gia_in_biblioteca": 0, "gia_proposti": 0}
+    run = {"id": ora, "iniziata": ora, "fonti": {}, "nuovi": [], "gia_in_biblioteca": 0, "gia_proposti": 0,
+           "scartati_poco_pertinenti": 0}
 
     attive = reg_fonti.attive(registro)
     for f in attive:
@@ -31,11 +44,17 @@ def esegui_scansione(archivio: Archivio, registro: dict, fetcher, adesso: dateti
                                                   checkpoint.get(f["id"]))
             esito["trovati"] = len(trovati)
             for c in trovati:
-                if chiave_opera(c["titolo"], c["autore"]) in inventario and c["titolo"]:
+                nt = normalizza(c["titolo"])
+                if c["titolo"] and (chiave_opera(c["titolo"], c["autore"]) in inventario
+                                    or any(t in nt for t in titoli_inv)):
                     run["gia_in_biblioteca"] += 1
                     continue
                 if c["id"] in candidati:
                     run["gia_proposti"] += 1
+                    continue
+                c["punteggio"] = rilevanza.punteggio(c, fonte_curata=f["adattatore"] == "pagina_link")
+                if c["punteggio"] < rilevanza.SOGLIA:
+                    run["scartati_poco_pertinenti"] += 1
                     continue
                 candidati[c["id"]] = c
                 run["nuovi"].append(c["id"])
@@ -70,14 +89,19 @@ def rapporto(run: dict, candidati: dict) -> str:
         r.append(f"- {fid}: {e['stato']} — trovati {e['trovati']}, nuovi {e['nuovi']}" +
                  (f" — {e['errore']}" if e.get("errore") else ""))
     r.append("")
+    r.append(f"Già in biblioteca: {run['gia_in_biblioteca']} · già proposti: {run['gia_proposti']} · "
+             f"scartati perché poco pertinenti: {run['scartati_poco_pertinenti']}")
+    r.append("")
     if run["nuovi"]:
-        r.append(f"## Da approvare ({len(run['nuovi'])})")
-        for cid in run["nuovi"][:100]:
+        ordinati = sorted(run["nuovi"], key=lambda i: -candidati[i].get("punteggio", 0))
+        r.append(f"## Da approvare: i {min(MOSTRA, len(ordinati))} più pertinenti su {len(ordinati)} nuovi")
+        r.append("Formato approvazione: `ID:VERSIONE`")
+        for cid in ordinati[:MOSTRA]:
             x = candidati[cid]
-            r.append(f"- `{cid}` {x['titolo']} — {x['autore'] or 's.a.'} [{x['lingua'] or '?'}, {x['formato'] or '?'}] "
-                     f"({x['fonte_id']}) — {x['motivo']}")
-        if len(run["nuovi"]) > 100:
-            r.append(f"- … altri {len(run['nuovi']) - 100} nell'archivio")
+            r.append(f"- `{cid}:{x['versione']}` {x['titolo'][:120]} — {x['autore'][:60] or 's.a.'} "
+                     f"[{x['lingua'] or '?'}, {x['formato'] or '?'}] ({x['fonte_id']}, pertinenza {x.get('punteggio', 0)})")
+        if len(ordinati) > MOSTRA:
+            r.append(f"- … altri {len(ordinati) - MOSTRA} candidati in archivio, non mostrati")
     else:
         r.append("Nessun candidato nuovo questo mese.")
     return "\n".join(r)

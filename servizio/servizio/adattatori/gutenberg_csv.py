@@ -36,6 +36,7 @@ def cerca(fonte: dict, ricerche: list[str], fetcher, adesso: str, ultimo_control
             url_scheda=f"https://www.gutenberg.org/ebooks/{n}",
             url_download=f"https://www.gutenberg.org/cache/epub/{n}/pg{n}.epub",
             integrale=True, verifica="catalogo",
+            argomenti=" ".join(((r.get("Subjects") or "") + " " + (r.get("Bookshelves") or "")).split())[:300],
             motivo=f"Argomento «{trovata}» nel catalogo Gutenberg (dominio pubblico)",
         ))
     return out
