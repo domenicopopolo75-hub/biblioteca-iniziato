@@ -209,7 +209,24 @@ def test_rapporto_mostra_solo_i_piu_pertinenti_con_versione(arc):
     testo = scansione.rapporto(run, arc.leggi("candidati"))
     assert f"i {scansione.MOSTRA} più pertinenti su 60" in testo and "non mostrati" in testo
     cid = max(run["nuovi"], key=lambda i: arc.leggi("candidati")[i]["punteggio"])
-    assert f"`{cid}:{arc.leggi('candidati')[cid]['versione']}`" in testo
+    assert f"`{cid}:{arc.leggi('candidati')[cid]['versione'][:12]}`" in testo
+
+
+def test_rilevanza_cognomi_ambigui_non_contano():
+    from servizio import rilevanza
+    assert rilevanza.punteggio({"titolo": "The Making of Mary", "autore": "McIlwraith, Jean Newton", "argomenti": ""}) < rilevanza.SOGLIA
+    assert rilevanza.punteggio({"titolo": "America's Decline", "autore": "Revilo P. Oliver", "argomenti": ""}) < rilevanza.SOGLIA
+    assert rilevanza.punteggio({"titolo": "Counter Tradition", "autore": "Rene Guenon", "argomenti": ""}) >= rilevanza.SOGLIA
+
+
+def test_approvazione_con_prefisso_della_versione_vale_solo_se_univoco_e_lungo(arc):
+    c = candidato(arc)
+    with pytest.raises(ErroreApprovazione):
+        approvazioni.approva(arc, c["id"], c["versione"][:6], "dom", ORA)  # troppo corto
+    with pytest.raises(ErroreApprovazione):
+        approvazioni.approva(arc, c["id"], "0" * 12, "dom", ORA)  # versione sbagliata
+    a = approvazioni.approva(arc, c["id"], c["versione"][:12], "dom", ORA)
+    assert a["versione"] == c["versione"]
 
 
 def test_registro_reale_valido_e_copertura_dichiarata():

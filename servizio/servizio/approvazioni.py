@@ -20,10 +20,12 @@ def approva(archivio: Archivio, candidato_id: str, versione: str, da: str, adess
     c = candidati.get(candidato_id)
     if not c:
         raise ErroreApprovazione(f"candidato sconosciuto: {candidato_id}")
-    if versione != c["versione"] or versione != versione_candidato(c):
+    attuale = versione_candidato(c)
+    if len(versione) < 12 or c["versione"] != attuale or not attuale.startswith(versione):
         raise ErroreApprovazione("la versione del candidato è cambiata: serve una nuova approvazione")
     if c["stato"] in (RIFIUTATO,):
         raise ErroreApprovazione("candidato rifiutato")
+    versione = attuale  # il prefisso (≥12 caratteri) del rapporto si lega alla versione completa
     appr = archivio.leggi("approvazioni")
     aid = f"{candidato_id}:{versione[:12]}"
     if aid in appr and not appr[aid].get("revocata"):

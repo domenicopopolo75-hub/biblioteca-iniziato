@@ -39,6 +39,28 @@ Aggiornato: 13/11/2026 ore 13:45 · Esecutore: Claude (Code) · Mandato: dossier
 | Google Drive nell'app: accesso, cartelle, ricerca, import file e cartelle intere | Scritto; client OAuth iOS creato (13/11 sera) | Progetto Google Cloud «Biblioteca Iniziato», Drive API attiva, schermata di consenso in modalità **Test** con utente di prova domenicopopolo75@gmail.com. ID client in `ios/project.yml` (non è un segreto). **Non ancora provato su iPhone**; in modalità Test Google fa scadere il rinnovo dell'accesso dopo 7 giorni: se succede, riaccedere (oppure pubblicare l'app «in produzione» come uso personale) |
 | Interfaccia: guida iniziale, schede Biblioteca/Studio/Ascolta/Impostazioni | Fatto | Build 2 inviata a TestFlight |
 
+## Lotto 2 — fonti, scansione mensile, approvazione, import (13/11/2026, sera)
+
+Codice in `servizio/` (solo libreria standard, 34 test), flussi in `.github/workflows/`. Esecutore: **GitHub Actions** (D-cron scelto dal proprietario). Stato in ramo `dati` (solo metadati; repository pubblico).
+
+| Requisito (§13.1/§13.2) | Stato | Prova |
+|---|---|---|
+| Registro 17 fonti + 4 servizi personali con capacità | Fatto (`servizio/fonti.json`) | test registro |
+| Adattatori reali | **6 attivi su 17**: Project Gutenberg (catalogo ufficiale CSV), Internet Archive, Libera Conoscenza, O.T.O. Italia, Genoa Lodge, Fuoco Sacro | Scansione reale su GitHub: 6/6 ok (esecuzione 43514761938) |
+| Altre 11 fonti | **Non implementate** (Liber Liber, Wikisource, Gallica, e-rara, MDZ, Steiner Archive, Hermetic Library, Sacred Texts, IAPSOP, Cintamani, Pax Pleroma) | Il rapporto dice «parziale» finché mancano |
+| robots.txt, timeout, backoff, fonte guasta isolata | Fatto | test + Gutendex (403 Cloudflare) isolato nella prima prova reale, poi sostituito dal catalogo ufficiale |
+| Scheduler mensile | Cron **giornaliero** 06:17 UTC che parte solo se dovuta (1° del mese, 07:00 Europe/Rome); un cron saltato si recupera il giorno dopo | Simulazione di 12 mesi nei test; esecuzione reale con `forza` |
+| Blocco esecuzioni sovrapposte, recupero blocco abbandonato | Fatto | test |
+| Confronto con inventario, dedup, non-duplicato per nuova edizione | Inventario iniziale dal dossier + Drive (da arricchire con l'elenco reale di Drive) | test |
+| Pertinenza (soglia) e rapporto limitato ai 40 più pertinenti | Fatto, pesi da tarare | prima scansione reale: 488 nuovi → 40 mostrati |
+| Notifica | **Issue GitHub** (arriva in GitHub Mobile / email) | Issue creata dalla scansione reale |
+| Approvazione verificata nel servizio; A≠B; candidato modificato invalida; doppio invio idempotente | Fatto | test negativi con fixture |
+| Download solo con approvazione valida, verifica formato, hash, dedup, retry idempotenti | Fatto con Drive finto | test (retry, upload già avvenuto, hash duplicato) |
+| **Caricamento reale su Drive** | **Scritto, non provato**: mancano le credenziali del servizio (segreti `GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN`, `DRIVE_FOLDER_ID`) | `approva-e-importa.yml` registra l'approvazione e segnala che il download non è eseguito |
+| **Approvazione dall'app** | **Non fatta**: oggi si approva con il workflow «Approva e importa» (solo proprietario) | — |
+
+Limiti reali: nessun libro nuovo scaricato; nessuna approvazione reale; il ramo `dati` è pubblico (titoli e link di testi pubblici).
+
 ## Limiti noti (reali)
 
 - Traduzione Apple: funziona per coppie supportate dopo il download della lingua; **in background** potrebbe non essere disponibile → il lettore traduce in anticipo (30 blocchi) mentre l'app è aperta e, se la traduzione manca, si ferma dichiarando il blocco (mai passaggio all'inglese). Da misurare nella prova fisica.

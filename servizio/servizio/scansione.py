@@ -98,7 +98,7 @@ def rapporto(run: dict, candidati: dict) -> str:
         r.append("Formato approvazione: `ID:VERSIONE`")
         for cid in ordinati[:MOSTRA]:
             x = candidati[cid]
-            r.append(f"- `{cid}:{x['versione']}` {x['titolo'][:120]} — {x['autore'][:60] or 's.a.'} "
+            r.append(f"- `{cid}:{x['versione'][:12]}` {x['titolo'][:120]} — {x['autore'][:60] or 's.a.'} "
                      f"[{x['lingua'] or '?'}, {x['formato'] or '?'}] ({x['fonte_id']}, pertinenza {x.get('punteggio', 0)})")
         if len(ordinati) > MOSTRA:
             r.append(f"- … altri {len(ordinati) - MOSTRA} candidati in archivio, non mostrati")
