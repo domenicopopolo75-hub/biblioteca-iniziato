@@ -204,10 +204,18 @@
       "nome": "Pax Pleroma",
       "url": "https://paxpleroma.com/",
       "capacita": [
-        "catalogo"
+        "catalogo",
+        "testo_completo"
       ],
-      "adattatore": null,
-      "stato": "da_implementare"
+      "adattatore": "sitemap",
+      "stato": "attivo",
+      "parametri": {
+        "lingua": "it",
+        "escludi": [
+          "terms-and-conditions"
+        ]
+      },
+      "nota": "Articoli e pratiche (gnosi, martinismo); il PDF della rivista non è collegato direttamente (ricognizione ChatGPT del 15/11)"
     }
   ],
   "servizi_personali": [

@@ -229,6 +229,28 @@ def test_approvazione_con_prefisso_della_versione_vale_solo_se_univoco_e_lungo(a
     assert a["versione"] == c["versione"]
 
 
+def test_sitemap_canonicalizza_esclude_e_ricade_sui_link_interni():
+    from servizio.adattatori import sitemap
+    from servizio.rete import ErroreRete
+    xml = ("<urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>"
+           "<url><loc>http://www.sito.it/arconti/</loc><lastmod>2026-10-01</lastmod></url>"
+           "<url><loc>https://sito.it/arconti</loc></url>"
+           "<url><loc>https://sito.it/terms-and-conditions</loc></url>"
+           "<url><loc>https://sito.it/home</loc></url>"
+           "<url><loc>https://sito.it/inno-della-perla</loc><lastmod>2026-11-10</lastmod></url></urlset>")
+    fonte = {"id": "p", "nome": "Sito", "url": "https://sito.it/", "parametri": {"lingua": "it"}}
+    f = FetcherFinto({"https://sito.it/sitemap.xml": xml.encode()})
+    r = sitemap.cerca(fonte, [], f, ORA, None)
+    assert sorted(c["titolo"] for c in r) == ["Arconti", "Inno della perla"]  # duplicati http/www/slash fusi
+    assert all(c["formato"] == "html" and c["url_download"].startswith("https://sito.it/") for c in r)
+    nuovi = sitemap.cerca(fonte, [], f, ORA, "2026-11-01T00:00:00")
+    assert [c["titolo"] for c in nuovi] == ["Inno della perla"]  # incrementale per lastmod
+    f2 = FetcherFinto({"https://sito.it/sitemap.xml": ErroreRete("404"),
+                       "https://sito.it/": b'<a href="/via-interiore">x</a><a href="https://altro.com/y">no</a><a href="/via-interiore#a">dup</a>'})
+    r2 = sitemap.cerca(fonte, [], f2, ORA, None)
+    assert [c["titolo"] for c in r2] == ["Via interiore"]
+
+
 def test_registro_reale_valido_e_copertura_dichiarata():
     reg = fonti.carica_registro()
     assert len(reg["fonti"]) == 17 and len(reg["servizi_personali"]) == 4
