@@ -493,6 +493,7 @@ final class RicercaTests: XCTestCase {
     }
 }
 
+@MainActor
 final class FontiETestiTests: XCTestCase {
     func testElencoFontiSpecchioDelRegistro() {
         XCTAssertEqual(FontiOnline.elenco.count, 17)
