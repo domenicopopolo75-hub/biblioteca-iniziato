@@ -115,7 +115,7 @@ final class Ricerca: ObservableObject {
         let ext = (v.name as NSString).pathExtension.lowercased()
         let conosciuta = ["pdf", "epub", "txt", "md", "json", "html", "htm"].contains(ext)
         let titolo = conosciuta ? (v.name as NSString).deletingPathExtension : v.name
-        let formato = conosciuta ? ext : (v.documentoGoogle ? "documento Google" : (ext.isEmpty ? nil : ext))
+        let formato: String? = conosciuta ? ext : (v.documentoGoogle ? "documento Google" : (ext.isEmpty ? nil : ext))
         return Risultato(id: Riferimento.identita(origine: .drive, chiave: v.id), titolo: titolo, origine: .drive,
                          nomeFonte: "Google Drive",
                          collegamento: v.webViewLink ?? "https://drive.google.com/file/d/\(v.id)/view",

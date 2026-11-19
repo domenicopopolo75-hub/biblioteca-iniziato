@@ -423,3 +423,90 @@ def test_risoluzione_archive_sceglie_originale_pdf_o_epub():
     f = FetcherFinto({"https://archive.org/metadata/xid": json.dumps(meta).encode()})
     url, ext = acquisizione.risolvi_archive({"url_scheda": "https://archive.org/details/xid"}, f)
     assert (url, ext) == ("https://archive.org/download/xid/x.epub", "epub")
+
+
+# ---------- riferimento ≠ download (lotto riferimenti) ----------
+def test_salvare_un_riferimento_non_autorizza_ne_scarica(arc):
+    c = candidato(arc)
+    r = approvazioni.salva_riferimento(arc, c["id"], ORA, "dom")
+    assert r["stato"] == "riferimento"
+    assert arc.leggi("approvazioni") == {}  # nessuna approvazione creata
+    assert approvazioni.approvazione_valida(arc, c["id"]) is None
+    with pytest.raises(ErroreApprovazione):  # il download resta vietato
+        acquisizione.crea_lavoro(arc, c["id"], ORA)
+    assert arc.leggi("lavori") == {} and arc.leggi("hash_importati") == {}
+    # idempotente
+    approvazioni.salva_riferimento(arc, c["id"], ORA, "dom")
+    assert [s["stato"] for s in arc.leggi("candidati")[c["id"]]["storia"]].count("riferimento") == 1
+
+
+def test_dopo_il_riferimento_l_approvazione_e_una_decisione_a_parte(arc):
+    c = candidato(arc)
+    approvazioni.salva_riferimento(arc, c["id"], ORA)
+    approvazioni.approva(arc, c["id"], c["versione"], "dom", ORA)
+    assert arc.leggi("candidati")[c["id"]]["stato"] == "approvato"
+    assert approvazioni.approvazione_valida(arc, c["id"]) is not None
+    # salvare di nuovo il riferimento non retrocede un candidato approvato
+    approvazioni.salva_riferimento(arc, c["id"], ORA)
+    assert arc.leggi("candidati")[c["id"]]["stato"] == "approvato"
+
+
+def test_riferimento_su_candidato_rifiutato_o_sconosciuto_e_negato(arc):
+    c = candidato(arc)
+    approvazioni.rifiuta(arc, c["id"], ORA)
+    with pytest.raises(ErroreApprovazione):
+        approvazioni.salva_riferimento(arc, c["id"], ORA)
+    with pytest.raises(ErroreApprovazione):
+        approvazioni.salva_riferimento(arc, "inesistente", ORA)
+
+
+def test_riferimento_salvato_resta_nel_catalogo_e_non_ricompare_come_nuovo(arc):
+    d = datetime(2026, 12, 1, tzinfo=timezone.utc)
+    run = scansione.esegui_scansione(arc, registro(), None, d, adattatori())
+    cid = run["nuovi"][0]
+    approvazioni.salva_riferimento(arc, cid, ORA)
+    run2 = scansione.esegui_scansione(arc, registro(), None, d, adattatori())
+    assert cid not in run2["nuovi"] and run2["gia_proposti"] == 2
+    assert arc.leggi("candidati")[cid]["stato"] == "riferimento"
+
+
+def test_comando_riferimento_da_riga_di_comando_non_scarica(arc, tmp_path):
+    from servizio.__main__ import main
+    c = candidato(arc)
+    assert main(["riferimento", "--dati", str(arc.dir), "--id", f"{c['id']}:{c['versione'][:12]}"]) == 0
+    assert arc.leggi("candidati")[c["id"]]["stato"] == "riferimento"
+    assert arc.leggi("lavori") == {}
+
+
+def test_scansione_reale_degli_adattatori_propone_senza_acquisire(arc):
+    """Con gli adattatori veri (elenco di collegamenti + mappa del sito) si richiedono solo le pagine di catalogo."""
+    elenco = "https://s.example/elenco"
+    mappa = "https://p.example/sitemap.xml"
+    f = FetcherFinto({
+        elenco: b'<h3>Hermetic</h3><a href="/files/hermetic-corpus.pdf">Hermetic Corpus</a><a href="/files/altro.epub">Altro testo</a>',
+        mappa: b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://p.example/gnosi-e-sofia</loc></url></urlset>',
+    })
+    reg = {"ricerche": ["hermetic"], "fonti": [
+        {"id": "pl", "nome": "PL", "url": elenco, "capacita": ["catalogo"], "adattatore": "pagina_link", "stato": "attivo",
+         "parametri": {"lingua": "it"}},
+        {"id": "px", "nome": "PX", "url": "https://p.example/", "capacita": ["catalogo"], "adattatore": "sitemap",
+         "stato": "attivo", "parametri": {"lingua": "it"}}]}
+    run = scansione.esegui_scansione(arc, reg, f, datetime(2026, 12, 1, tzinfo=timezone.utc))
+    assert set(f.richieste) <= {elenco, mappa}  # nessun PDF, EPUB o articolo richiesto
+    assert run["fonti"]["pl"]["stato"] == "ok" and run["fonti"]["px"]["stato"] == "ok"
+    assert run["fonti"]["pl"]["trovati"] == 2 and run["fonti"]["px"]["trovati"] == 1
+    assert arc.leggi("lavori") == {} and arc.leggi("hash_importati") == {} and arc.leggi("approvazioni") == {}
+    assert all(c["stato"] == "proposto" for c in arc.leggi("candidati").values())
+
+
+def test_app_ios_specchia_il_registro_delle_fonti():
+    """Le 17 fonti dell'app devono coincidere con il registro del servizio, con lo stesso stato di supporto."""
+    import re
+    from pathlib import Path
+    swift = (Path(__file__).resolve().parents[2] / "ios/Biblioteca/Riferimenti/FontiOnline.swift").read_text(encoding="utf-8")
+    voci = re.findall(r'\.init\(id: "([^"]+)".*?metodo: (nil|\.\w+)', swift, re.S)
+    reg = fonti.carica_registro()
+    assert [v[0] for v in voci] == [f["id"] for f in reg["fonti"]]
+    metodo = {"sitemap": ".sitemap", "pagina_link": ".paginaLink", "archive": ".archive"}
+    for (ident, m), f in zip(voci, reg["fonti"]):
+        assert m == metodo.get(f.get("adattatore"), "nil"), (ident, m)

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .archivio import Archivio
-from .modello import APPROVATO, IMPORTATO, PROPOSTO, RIFIUTATO, RINVIATO, versione_candidato
+from .modello import APPROVATO, IMPORTATO, IN_DOWNLOAD, PROPOSTO, RIFERIMENTO, RIFIUTATO, RINVIATO, versione_candidato
 
 
 class ErroreApprovazione(Exception):
@@ -32,11 +32,29 @@ def approva(archivio: Archivio, candidato_id: str, versione: str, da: str, adess
         return appr[aid]  # doppio invio: nessun effetto in più
     appr[aid] = {"id": aid, "candidato_id": candidato_id, "versione": versione, "da": da, "quando": adesso,
                  "revocata": False}
-    if c["stato"] in (PROPOSTO, RINVIATO):
+    if c["stato"] in (PROPOSTO, RINVIATO, RIFERIMENTO):
         _cambia(c, APPROVATO, adesso)
     archivio.scrivi("approvazioni", appr)
     archivio.scrivi("candidati", candidati)
     return appr[aid]
+
+
+def salva_riferimento(archivio: Archivio, candidato_id: str, adesso: str, da: str = "proprietario") -> dict:
+    """Salvare un riferimento e autorizzare un download sono due decisioni diverse.
+
+    Questa conserva solo scheda e collegamento nel catalogo: non crea approvazioni, non crea lavori,
+    non scarica nulla. Idempotente; non retrocede un candidato già approvato o importato."""
+    candidati = archivio.leggi("candidati")
+    c = candidati.get(candidato_id)
+    if not c:
+        raise ErroreApprovazione(f"candidato sconosciuto: {candidato_id}")
+    if c["stato"] == RIFIUTATO:
+        raise ErroreApprovazione("candidato rifiutato")
+    if c["stato"] in (APPROVATO, IN_DOWNLOAD, IMPORTATO, RIFERIMENTO):
+        return c
+    _cambia(c, RIFERIMENTO, adesso, f"riferimento salvato da {da}: nessun download autorizzato")
+    archivio.scrivi("candidati", candidati)
+    return c
 
 
 def rifiuta(archivio: Archivio, candidato_id: str, adesso: str, rinvia: bool = False) -> None:

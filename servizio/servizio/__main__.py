@@ -1,4 +1,4 @@
-"""Uso: python -m servizio <scansiona|approva|esegui|calendario> --dati DIR ..."""
+"""Uso: python -m servizio <scansiona|approva|riferimento|esegui|calendario> --dati DIR ..."""
 from __future__ import annotations
 
 import argparse
@@ -13,7 +13,7 @@ from .rete import Fetcher
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="servizio")
-    ap.add_argument("comando", choices=["scansiona", "approva", "esegui", "calendario"])
+    ap.add_argument("comando", choices=["scansiona", "approva", "riferimento", "esegui", "calendario"])
     ap.add_argument("--dati", default="dati")
     ap.add_argument("--forza", action="store_true", help="scansiona anche se non è dovuta")
     ap.add_argument("--id", action="append", default=[], help="candidato nel formato ID:VERSIONE (la versione che l'utente ha visto)")
@@ -50,6 +50,11 @@ def main(argv=None) -> int:
                     cid, _, versione = voce.partition(":")
                     approvazioni.approva(arc, cid, versione, a.da, adesso.isoformat())
                     print("approvato", cid)
+            elif a.comando == "riferimento":
+                for voce in a.id:
+                    cid, _, _versione = voce.partition(":")
+                    approvazioni.salva_riferimento(arc, cid, adesso.isoformat(), a.da)
+                    print("riferimento salvato (nessun download)", cid)
             elif a.comando == "esegui":
                 from .drive import GoogleDrive
                 sink, f = GoogleDrive(), Fetcher()

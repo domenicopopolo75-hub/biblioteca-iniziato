@@ -7,6 +7,8 @@ import unicodedata
 
 # Flusso persistente del candidato
 PROPOSTO, APPROVATO, RIFIUTATO, RINVIATO = "proposto", "approvato", "rifiutato", "rinviato"
+# Decisione distinta dall'approvazione: tiene scheda e collegamento, NON autorizza alcun download.
+RIFERIMENTO = "riferimento"
 IN_DOWNLOAD, VERIFICATO, IMPORTATO, ERRORE = "in_download", "verificato", "importato", "errore"
 
 # Campi che identificano il contenuto/edizione: se cambiano, l'approvazione decade.

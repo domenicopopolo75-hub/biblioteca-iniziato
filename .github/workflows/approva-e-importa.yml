@@ -1,10 +1,17 @@
 name: Approva e importa
 
-# Approvazione verificata lato servizio: solo il proprietario del repository, per candidato E versione.
-# Il download parte solo con approvazione valida; poi verifica, hash, deduplica, caricamento su Drive.
+# Due decisioni distinte, mai confuse:
+#   - «salva_riferimento»: tiene scheda e collegamento del candidato nel catalogo; NON scarica nulla.
+#   - «approva»: autorizza il download di UNA versione precisa; solo allora parte verifica, hash, deduplica, caricamento su Drive.
+# Solo il proprietario del repository può decidere.
 on:
   workflow_dispatch:
     inputs:
+      azione:
+        description: "approva = autorizza il download · salva_riferimento = solo scheda e collegamento, nessun download"
+        type: choice
+        options: [approva, salva_riferimento]
+        default: approva
       candidati:
         description: "Elenco ID:VERSIONE separati da virgola (dal rapporto della scansione)"
         required: true
@@ -33,13 +40,18 @@ jobs:
         with: { python-version: "3.12" }
       - name: Stato
         run: git clone --quiet --branch dati --single-branch --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" dati
-      - name: Approva
+      - name: Registra la decisione
         run: |
           cd servizio
           args=(); IFS=',' read -ra voci <<< "${{ inputs.candidati }}"
           for v in "${voci[@]}"; do args+=(--id "$(echo "$v" | xargs)"); done
-          python -m servizio approva --dati ../dati --da "${{ github.actor }}" "${args[@]}"
+          if [ "${{ inputs.azione }}" = "salva_riferimento" ]; then
+            python -m servizio riferimento --dati ../dati --da "${{ github.actor }}" "${args[@]}"
+          else
+            python -m servizio approva --dati ../dati --da "${{ github.actor }}" "${args[@]}"
+          fi
       - name: Importa su Drive
+        if: ${{ inputs.azione == 'approva' }}
         run: |
           if [ -z "$GOOGLE_REFRESH_TOKEN" ]; then
             echo "::warning::Accesso Drive del servizio non configurato: approvazione registrata, download NON eseguito."
