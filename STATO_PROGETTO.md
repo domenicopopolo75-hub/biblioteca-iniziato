@@ -1,6 +1,6 @@
 # STATO_PROGETTO — Biblioteca dell'Iniziato
 
-Aggiornato: 13/11/2026 ore 13:45 · Esecutore: Claude (Code) · Mandato: dossier Ecce Quam Bonum §13.2
+Aggiornato: 19/11/2026 · Esecutore: Claude (Code) · Mandato: lotto Riferimenti (ricerca Drive + online, consultazione, copia volontaria)
 
 ## Decisioni del proprietario (13/11/2026)
 
@@ -9,6 +9,7 @@ Aggiornato: 13/11/2026 ore 13:45 · Esecutore: Claude (Code) · Mandato: dossier
 - **D3** Voce: **voce Apple italiana locale** (si consiglia di scaricare una voce Avanzata/Premium).
 - **D4** Ricerca mensile dei nuovi testi (lotto 2): **GitHub Actions cron**.
 - **D6** (13/11 pomeriggio) Il proprietario giudica il lotto 1 troppo semplice: Studio e Drive anticipati. **IA = Claude via API**, tetto **5 €/mese** (Haiku 5.5 per traduzioni/riassunti, Sonnet 5.5 per domande e analisi). **Google Drive dentro l'app** (OAuth sola lettura).
+- **D7** (19/11) Cercare e studiare su Drive e online **senza scaricare in modo permanente**: salvare un riferimento e conservare una copia sono due decisioni distinte; la copia solo su scelta esplicita.
 - **D5** TestFlight con **chiave App Store Connect dedicata** «GitHub Biblioteca» (ID L7R3WR7D57, Amministrazione); segreto unico `ASC_KEY_P8` nel repo. Identificativo `it.biblioteca.iniziato`, scheda app «Biblioteca dell'Iniziato» (id 6834386818). Firma **gestita da Apple** (cloud signing): il team ha già il massimo di certificati di distribuzione e non si toccano quelli di Cantina/Ripulire mail.
 
 ## Lotto 1 — primo percorso completo (in corso)
@@ -61,17 +62,40 @@ Codice in `servizio/` (solo libreria standard, 34 test), flussi in `.github/work
 
 Limiti reali: nessun libro nuovo scaricato; nessuna approvazione reale; il ramo `dati` è pubblico (titoli e link di testi pubblici).
 
+## Lotto Riferimenti — ricerca Drive + online (19/11/2026)
+
+Ramo `claude/riferimenti-drive-online-2026-11-19`. CI verde: 43 test iOS (simulatore), 42 test servizio, pipeline.
+
+| Funzione | Stato | Prova |
+|---|---|---|
+| Ricerca unica: telefono, Drive, online, con provenienza e fonti interrogate/non raggiungibili/non interrogate dichiarate | Fatto | test CI |
+| Catalogo riferimenti (titolo, autore se noto, fonte, link, lingua, testo disponibile), persiste al riavvio, nessuna copia | Fatto | test CI |
+| Consulta: Drive e articoli HTML (Pax Pleroma), livelli riferimento / anteprima / parziale / completo | Fatto | test CI |
+| Fonte cambiata (impronta) o sparita (404/410/403/robots): segnalata, appunti mantenuti; errore di rete non la marca sparita | Fatto | test CI |
+| Conserva una copia solo su scelta, senza doppioni (copiaId, provenienza, sha256) | Fatto | test CI |
+| Memoria temporanea (Caches, 150 MB, svuotabile senza perdere riferimenti, appunti, copie) | Fatto | test CI |
+| Servizio mensile: stato `riferimento`, nessuna approvazione/scarico; workflow con azione `approva` o `salva_riferimento` | Fatto | test servizio |
+| Prova su iPhone, OAuth Drive reale, HTML reale di Pax Pleroma | **Da fare** | — |
+
+Fonti nell'app: 6 su 17 interrogabili (Archive, Libera Conoscenza, O.T.O. Italia, Genoa Lodge, Fuoco Sacro, Pax Pleroma); le altre 11 (Gutenberg incluso, catalogo troppo grande) sono dichiarate «non interrogata» con motivo.
+
+## Pendenti dalla revisione 19/11 (NON risolti)
+
+Budget vincolante · citazioni/copertura · checkpoint d'esame · servizio e chiavi privati · stato operativo privato · candidati aggiornabili · proposte/approvazione nell'app (lotto 4b) · allineamento CI/Xcode · cron 06:17 UTC vs 07:00 · scansione «riuscita» se ≥1 fonte · 10 fonti mancanti · OAuth in modalità Test.
+
+Discrepanza nota: STATUS dice 7 fonti attive (con Gutenberg), questo file 6 nell'app.
+
 ## Limiti noti (reali)
 
 - Traduzione Apple: funziona per coppie supportate dopo il download della lingua; **in background** potrebbe non essere disponibile → il lettore traduce in anticipo (30 blocchi) mentre l'app è aperta e, se la traduzione manca, si ferma dichiarando il blocco (mai passaggio all'inglese). Da misurare nella prova fisica.
 - Glossario: applicato solo nel prompt API; la traduzione Apple non accetta glossari.
 - Passi in ebraico/greco: annunciati, non letti. L'ebraico estratto dai PDF può avere ordine dei caratteri non affidabile (RTL).
-- Ricerca, riassunti, quaderno: lotto 3. Fonti e scansione mensile: lotto 2.
-- Archivio locale in JSON per libro (SQLite/FTS5 arriva con la ricerca, lotto 3).
+- Riassunti e quaderno: ancora da fare. Fonti e scansione mensile: lotto 2. Ricerca nella biblioteca (FTS5) e ricerca Drive/online: fatte (vedi lotto Riferimenti).
+- Archivio locale in JSON per libro; l'indice SQLite FTS5 è affiancato (già fatto, vedi «Studio e Drive»).
 
 ## Istruzioni di ripresa
 
 1. `cd pipeline && python -m pytest -q`
 2. CI GitHub (`.github/workflows/ci.yml`): build + test iOS su simulatore, gratuiti perché il repo è pubblico.
 3. Nuova build: Actions → TestFlight → Run workflow (numero build automatico). `solo_tester` aggiorna gruppo/tester.
-4. Prossimo: prova fisica 60 min → correzioni dai dati misurati → lotto 2 (fonti e scansione mensile con approvazione).
+4. Prima: prova iPhone del lotto Riferimenti (cerca «Kremmerz» → consulta un risultato Drive e uno Pax Pleroma → Salva riferimento → riavvia l'app → Conserva una copia due volte → Impostazioni: svuota memoria temporanea). Poi: prova fisica 60 min → correzioni dai dati misurati → lotto 2 (fonti e scansione mensile con approvazione).
