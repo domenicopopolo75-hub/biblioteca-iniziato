@@ -40,6 +40,31 @@ enum Importatore {
                          blocks: blocchi)
     }
 
+    /// Pagina web salvata come HTML: ne estrae l'articolo. L'originale (l'HTML) resta immutabile come per i PDF.
+    static func estraiHTML(url: URL, sha256: String, lingua: String?, indirizzo: String? = nil) throws -> Pacchetto {
+        let articolo = EstrattoreHTML.estrai(EstrattoreHTML.decodifica(html: try Data(contentsOf: url)))
+        guard !articolo.blocchi.isEmpty else { throw ErroreEstrazione.illeggibile("la pagina (nessun testo leggibile: forse richiede JavaScript)") }
+        let origine = indirizzo ?? articolo.canonico
+        let testoCampione = articolo.blocchi.prefix(40).map(\.testo).joined(separator: " ")
+        let lang = lingua ?? articolo.lingua ?? rilevaLingua(String(testoCampione.prefix(4000)))
+        let blocchi = articolo.blocchi.enumerated().map { (n, parte) -> Blocco in
+            let t = Normalizza.testo(parte.testo)
+            return Blocco(id: String(format: "h0000-b%04d", n), order: n, kind: parte.eTitolo ? "heading" : "paragraph",
+                          locator: Locator(page_index: 0, printed_page: nil, column: nil, bbox: nil,
+                                           chapter: articolo.titolo, href: origine),
+                          lang: Normalizza.scriptDominante(t) ?? lang, text_raw: parte.testo, text: t)
+        }
+        return Pacchetto(generated_at: ISO8601DateFormatter().string(from: Date()),
+                         generator: .init(name: "ios", version: "0.2.0"),
+                         work: .init(title: articolo.titolo ?? url.deletingPathExtension().lastPathComponent,
+                                     author: articolo.autore, language: lang),
+                         edition: .init(id: "sha256:\(sha256)", source_file: url.lastPathComponent, source_sha256: sha256,
+                                        format: "html", provenance: origine, pages_total: 1),
+                         coverage: .init(units_total: 1, units_with_text: 1, units_empty: [], units_need_ocr: [],
+                                         excluded_repeated: nil, units_ocr: nil),
+                         blocks: blocchi)
+    }
+
     static func rilevaLingua(_ testo: String) -> String? {
         let r = NLLanguageRecognizer()
         r.processString(testo)
@@ -47,7 +72,7 @@ enum Importatore {
     }
 
     /// Crea il pacchetto per un file. Non modifica mai l'originale.
-    static func pacchetto(per url: URL, sha: String, lingua: String? = nil) throws -> Pacchetto {
+    static func pacchetto(per url: URL, sha: String, lingua: String? = nil, indirizzo: String? = nil) throws -> Pacchetto {
         switch url.pathExtension.lowercased() {
         case "pdf":
             var p = try EstrattorePDF().estrai(url: url, sha256: sha, lingua: lingua, titolo: nil)
@@ -65,6 +90,8 @@ enum Importatore {
             return p
         case "txt", "md", "text":
             return try estraiTXT(url: url, sha256: sha, lingua: lingua)
+        case "html", "htm":
+            return try estraiHTML(url: url, sha256: sha, lingua: lingua, indirizzo: indirizzo)
         case "json":
             let p = try JSONDecoder().decode(Pacchetto.self, from: Data(contentsOf: url))
             guard p.format == Pacchetto.formato else { throw ErroreEstrazione.formatoNonSupportato(p.format) }

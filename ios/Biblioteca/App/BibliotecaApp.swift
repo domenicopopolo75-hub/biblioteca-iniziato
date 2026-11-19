@@ -7,7 +7,10 @@ struct BibliotecaApp: App {
     @StateObject private var lettore: Lettore
     @StateObject private var impostazioni = Impostazioni()
     @StateObject private var studio: Studio
-    @StateObject private var drive = GoogleDrive()
+    @StateObject private var drive: GoogleDrive
+    @StateObject private var registro: Registro
+    @StateObject private var consultazione: Consultazione
+    @StateObject private var ricerca: Ricerca
 
     /// Avvio dimostrativo (solo per le schermate): archivio separato con due testi di esempio inventati.
     static let demo = ProcessInfo.processInfo.arguments.contains("-demo")
@@ -22,6 +25,14 @@ struct BibliotecaApp: App {
         _traduttore = StateObject(wrappedValue: t)
         _lettore = StateObject(wrappedValue: Lettore(libreria: l, apple: t))
         _studio = StateObject(wrappedValue: Studio(libreria: l))
+        let dr = GoogleDrive()
+        let reg = Registro(radice: l.radice)
+        let memoria = MemoriaTemporanea(cartella: Self.demo ? l.radice.appendingPathComponent("temporanea") : nil)
+        let rete = ReteWeb()
+        _drive = StateObject(wrappedValue: dr)
+        _registro = StateObject(wrappedValue: reg)
+        _consultazione = StateObject(wrappedValue: Consultazione(rete: rete, memoria: memoria, drive: dr, libreria: l, registro: reg))
+        _ricerca = StateObject(wrappedValue: Ricerca(libreria: l, drive: dr, online: RicercaOnline(rete: rete, memoria: memoria)))
     }
 
     var body: some Scene {
@@ -33,6 +44,9 @@ struct BibliotecaApp: App {
                 .environmentObject(impostazioni)
                 .environmentObject(studio)
                 .environmentObject(drive)
+                .environmentObject(registro)
+                .environmentObject(consultazione)
+                .environmentObject(ricerca)
                 .modifier(HostTraduzioneApple(traduttore: traduttore))
                 .onAppear { impostazioni.applica(a: lettore) }
                 .onChange(of: impostazioni.versione) { impostazioni.applica(a: lettore) }

@@ -62,6 +62,8 @@ struct Locator: Codable, Equatable {
             return "pag. PDF \(page_index + 1)"
         case "epub":
             return [chapter, href].compactMap { $0 }.joined(separator: " · ")
+        case "html":
+            return chapter.map { "articolo «\($0)»" } ?? "articolo"
         default:
             return "testo"
         }

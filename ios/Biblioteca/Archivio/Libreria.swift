@@ -14,6 +14,9 @@ struct Libro: Codable, Identifiable, Equatable, Hashable {
     var unitaConTesto: Int
     var unitaOCR: Int
     var unitaSenzaTesto: Int
+    /// Da dove viene la copia conservata (indirizzo o «drive:<id>»): serve a non conservarla due volte.
+    var provenienza: String? = nil
+    var nomeFonte: String? = nil
 
     var daTradurre: Bool { !(lingua ?? "it").hasPrefix("it") }
 }
@@ -87,7 +90,7 @@ final class Libreria: ObservableObject {
 
     /// Importa un file scelto dall'utente. Deduplica per hash: lo stesso file non crea un secondo libro.
     @discardableResult
-    func importa(_ sorgente: URL) async -> Libro? {
+    func importa(_ sorgente: URL, provenienza: String? = nil, nomeFonte: String? = nil) async -> Libro? {
         let accesso = sorgente.startAccessingSecurityScopedResource()
         defer { if accesso { sorgente.stopAccessingSecurityScopedResource() } }
         importazioneInCorso = sorgente.lastPathComponent
@@ -100,13 +103,13 @@ final class Libreria: ObservableObject {
             try FileManager.default.copyItem(at: sorgente, to: tmp)
             defer { try? FileManager.default.removeItem(at: dirTmp) }
             let sha = try Importatore.sha256(tmp)
-            if let gia = libri.first(where: { $0.id == sha }) { return gia }
+            if let gia = libri.first(where: { $0.id == sha }) { return collega(gia, provenienza, nomeFonte) }
             let pacchetto = try await Task.detached(priority: .userInitiated) {
-                try Importatore.pacchetto(per: tmp, sha: sha)
+                try Importatore.pacchetto(per: tmp, sha: sha, indirizzo: provenienza)
             }.value
             // Un pacchetto .bibl.json prodotto da pipeline/ ha l'identità dell'edizione originale.
             let id = tmp.pathExtension.lowercased() == "json" ? pacchetto.edition.source_sha256 : sha
-            if let gia = libri.first(where: { $0.id == id }) { return gia }
+            if let gia = libri.first(where: { $0.id == id }) { return collega(gia, provenienza, nomeFonte) }
             let dir = cartella(id)
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             let est = tmp.pathExtension.lowercased() == "json" ? "bibl.json" : tmp.pathExtension.lowercased()
@@ -120,7 +123,7 @@ final class Libreria: ObservableObject {
                               nomeOriginale: sorgente.lastPathComponent, estensione: est, importatoIl: Date(),
                               blocchi: pacchetto.blocks.count, unitaTotali: c.units_total,
                               unitaConTesto: c.units_with_text, unitaOCR: c.units_ocr?.count ?? 0,
-                              unitaSenzaTesto: c.units_need_ocr.count)
+                              unitaSenzaTesto: c.units_need_ocr.count, provenienza: provenienza, nomeFonte: nomeFonte)
             libri.insert(libro, at: 0)
             cachePacchetti[id] = pacchetto
             salvaIndice()
@@ -131,6 +134,17 @@ final class Libreria: ObservableObject {
             return nil
         }
     }
+
+    /// Un libro già presente viene riconosciuto (stesso contenuto): gli si annota la provenienza se mancava, senza duplicarlo.
+    private func collega(_ libro: Libro, _ provenienza: String?, _ nomeFonte: String?) -> Libro {
+        guard let provenienza, libro.provenienza == nil, let i = libri.firstIndex(of: libro) else { return libro }
+        libri[i].provenienza = provenienza
+        libri[i].nomeFonte = nomeFonte
+        salvaIndice()
+        return libri[i]
+    }
+
+    func libro(conProvenienza p: String) -> Libro? { libri.first { $0.provenienza == p } }
 
     func aggiornaLingua(_ libro: Libro, lingua: String) {
         guard let i = libri.firstIndex(of: libro) else { return }
@@ -157,13 +171,13 @@ final class Libreria: ObservableObject {
 
     /// Importa un file scaricato (es. da Google Drive) indicando la provenienza.
     @discardableResult
-    func importa(dati url: URL, nome: String) async -> Libro? {
+    func importa(dati url: URL, nome: String, provenienza: String? = nil, nomeFonte: String? = nil) async -> Libro? {
         let dest = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
         let f = dest.appendingPathComponent(nome)
         try? FileManager.default.moveItem(at: url, to: f)
         defer { try? FileManager.default.removeItem(at: dest) }
-        return await importa(f)
+        return await importa(f, provenienza: provenienza, nomeFonte: nomeFonte)
     }
 
     // MARK: dati per libro

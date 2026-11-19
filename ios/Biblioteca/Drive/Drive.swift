@@ -13,10 +13,12 @@ final class GoogleDrive: NSObject, ObservableObject, ASWebAuthenticationPresenta
         var mimeType: String
         var size: String?
         var modifiedTime: String?
+        var webViewLink: String? = nil
+        var md5Checksum: String? = nil
         var cartella: Bool { mimeType == "application/vnd.google-apps.folder" }
         var documentoGoogle: Bool { mimeType == "application/vnd.google-apps.document" }
         var importabile: Bool {
-            documentoGoogle || ["pdf", "epub", "txt", "md", "json"].contains((name as NSString).pathExtension.lowercased())
+            documentoGoogle || ["pdf", "epub", "txt", "md", "json", "html", "htm"].contains((name as NSString).pathExtension.lowercased())
         }
         var dimensione: String? { size.flatMap { Int64($0) }.map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) } }
     }
@@ -158,11 +160,19 @@ final class GoogleDrive: NSObject, ObservableObject, ASWebAuthenticationPresenta
         return out
     }
 
+    /// Cerca nel nome e nel testo dei file di tutto il Drive. Più parole: devono comparire tutte (nel nome o nel testo).
+    static func queryRicerca(_ testo: String) -> String {
+        let termini = testo.split(whereSeparator: \.isWhitespace).map { String($0).replacingOccurrences(of: "\\", with: "").replacingOccurrences(of: "'", with: "\\'") }
+            .filter { !$0.isEmpty }.prefix(6)
+        let clausole = termini.map { "(name contains '\($0)' or fullText contains '\($0)')" }
+        return (clausole + ["trashed = false"]).joined(separator: " and ")
+    }
+
     func cerca(_ testo: String) async throws -> [Voce] {
         var c = URLComponents(string: "https://www.googleapis.com/drive/v3/files")!
-        let t = testo.replacingOccurrences(of: "'", with: "\\'")
-        c.queryItems = [.init(name: "q", value: "name contains '\(t)' and trashed = false"), .init(name: "pageSize", value: "100"),
-                        .init(name: "fields", value: "files(id,name,mimeType,size,modifiedTime)")]
+        c.queryItems = [.init(name: "q", value: Self.queryRicerca(testo)), .init(name: "pageSize", value: "50"),
+                        .init(name: "fields", value: "files(id,name,mimeType,size,modifiedTime,webViewLink,md5Checksum)"),
+                        .init(name: "supportsAllDrives", value: "true"), .init(name: "includeItemsFromAllDrives", value: "true")]
         let (d, _) = try await richiesta(c.url!)
         struct Elenco: Decodable { var files: [Voce] }
         return try JSONDecoder().decode(Elenco.self, from: d).files
@@ -177,7 +187,7 @@ final class GoogleDrive: NSObject, ObservableObject, ASWebAuthenticationPresenta
         req.setValue("Bearer \(try await accesso())", forHTTPHeaderField: "Authorization")
         let (tmp, r) = try await URLSession.shared.download(for: req)
         guard (r as? HTTPURLResponse)?.statusCode == 200 else {
-            throw NSError(domain: "Drive", code: 3, userInfo: [NSLocalizedDescriptionKey: "Download di «\(v.name)» non riuscito."])
+            throw NSError(domain: "Drive", code: (r as? HTTPURLResponse)?.statusCode ?? 3, userInfo: [NSLocalizedDescriptionKey: "Download di «\(v.name)» non riuscito."])
         }
         return (tmp, v.documentoGoogle ? v.name + ".txt" : v.name)
     }
@@ -291,7 +301,7 @@ struct DriveView: View {
             importazione = (i, file.count, v.name)
             do {
                 let (tmp, nome) = try await drive.scarica(v)
-                if let l = await libreria.importa(dati: tmp, nome: nome) { if prima.contains(l.id) { gia += 1 } else { ok += 1 } }
+                if let l = await libreria.importa(dati: tmp, nome: nome, provenienza: "drive:\(v.id)", nomeFonte: "Google Drive") { if prima.contains(l.id) { gia += 1 } else { ok += 1 } }
             } catch { drive.errore = error.localizedDescription }
         }
         importazione = nil

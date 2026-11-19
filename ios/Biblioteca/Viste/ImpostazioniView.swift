@@ -51,6 +51,8 @@ struct ImpostazioniView: View {
                 }
             }
 
+            MemoriaTemporaneaSezione()
+
             Section("Voce italiana") {
                 Picker("Voce", selection: $impostazioni.voce) {
                     Text("Migliore installata").tag("")

@@ -6,8 +6,10 @@ struct BibliotecaView: View {
     @AppStorage("guidaChiusa") private var guidaChiusa = false
     @State private var scegliFile = false
     @State private var apriDrive = false
+    @State private var apriRicerca = false
+    @EnvironmentObject var registro: Registro
 
-    static let tipi: [UTType] = [.pdf, UTType(filenameExtension: "epub") ?? .data, .plainText, .json,
+    static let tipi: [UTType] = [.pdf, UTType(filenameExtension: "epub") ?? .data, .plainText, .json, .html,
                                  UTType(filenameExtension: "md") ?? .plainText]
 
     var body: some View {
@@ -21,6 +23,12 @@ struct BibliotecaView: View {
             if let e = libreria.ultimoErrore {
                 Label(e, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                     .onTapGesture { libreria.ultimoErrore = nil }
+            }
+            Section {
+                NavigationLink { RiferimentiView() } label: {
+                    Label(registro.riferimenti.isEmpty ? "Riferimenti salvati" : "Riferimenti salvati (\(registro.riferimenti.count))",
+                          systemImage: "bookmark")
+                }
             }
             Section(libreria.libri.isEmpty ? "" : "\(libreria.libri.count) libri") {
                 ForEach(libreria.libri) { l in
@@ -38,8 +46,10 @@ struct BibliotecaView: View {
         .navigationTitle("Biblioteca")
         .navigationDestination(for: Libro.self) { LibroView(libro: $0) }
         .navigationDestination(isPresented: $apriDrive) { DriveView() }
+        .navigationDestination(isPresented: $apriRicerca) { RicercaView() }
         .toolbar {
             Menu {
+                Button { apriRicerca = true } label: { Label("Cerca su Drive e online", systemImage: "magnifyingglass") }
                 Button { apriDrive = true } label: { Label("Da Google Drive", systemImage: "externaldrive.badge.icloud") }
                 Button { scegliFile = true } label: { Label("Dai File dell'iPhone", systemImage: "folder") }
                 if guidaChiusa { Button { guidaChiusa = false } label: { Label("Mostra la guida", systemImage: "questionmark.circle") } }
@@ -176,6 +186,7 @@ struct LibroView: View {
 
             Section("Edizione") {
                 LabeledContent("File", value: libro.nomeOriginale)
+                if let f = libro.nomeFonte { LabeledContent("Provenienza", value: f) }
                 LabeledContent("Lingua", value: Locale(identifier: "it").localizedString(forLanguageCode: libro.lingua ?? "") ?? "non rilevata")
                 LabeledContent(libro.formato == "epub" ? "Sezioni con testo" : "Pagine con testo", value: "\(libro.unitaConTesto) su \(libro.unitaTotali)")
                 if libro.unitaOCR > 0 { LabeledContent("Pagine lette da immagine (OCR)", value: "\(libro.unitaOCR)") }
